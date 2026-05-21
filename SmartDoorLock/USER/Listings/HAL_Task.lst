@@ -1,4 +1,4 @@
-C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/13/2026 22:47:35 PAGE 1   
+C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/21/2026 17:28:22 PAGE 1   
 
 
 C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_TASK
@@ -55,14 +55,14 @@ line level    source
                 HAL_BackLight_TEST();
                 #endif
   46   1        #ifdef HAL_MCU_LED_TEST_ENABLE
-  47   1          HAL_MCU_LED_TEST();
-  48   1        #endif
+                  HAL_MCU_LED_TEST();
+                #endif
   49   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     66    ----
-C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/13/2026 22:47:35 PAGE 2   
+   CODE SIZE        =     63    ----
+C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/21/2026 17:28:22 PAGE 2   
 
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----

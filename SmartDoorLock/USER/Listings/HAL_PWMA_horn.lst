@@ -1,4 +1,4 @@
-C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 1   
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/21/2026 17:28:22 PAGE 1   
 
 
 C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_PWMA_HORN
@@ -62,7 +62,7 @@ line level    source
   51   1        switch(Soundtype)
   52   1        {
   53   2          case HAL_horn_sound_free:
-C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 2   
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/21/2026 17:28:22 PAGE 2   
 
   54   2            HAL_HornSound_task.soundSta=HAL_horn_sound_free;
   55   2            break;
@@ -126,7 +126,7 @@ line level    source
  113   3              if(HAL_HornSound_task.DiDong_time>1000)
  114   3              {
  115   4                HAL_HornSound_task.DiDong_time=0;
-C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 3   
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/21/2026 17:28:22 PAGE 3   
 
  116   4                HAL_PWMA_ENPort=0;
  117   4                PWMA_CR1 &=0xFE;

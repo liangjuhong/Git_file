@@ -1,4 +1,4 @@
-C51 COMPILER V9.59.0.0   HAL_GPIO                                                          05/13/2026 22:47:35 PAGE 1   
+C51 COMPILER V9.59.0.0   HAL_GPIO                                                          05/21/2026 17:28:22 PAGE 1   
 
 
 C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_GPIO
@@ -34,25 +34,25 @@ line level    source
   23   1        P67=1;
   24   1      }
   25          #ifdef HAL_MCU_LED_TEST_ENABLE
-  26          void HAL_MCU_LED_TEST()
-  27          {
-  28   1        static unsigned int HAL_LEDCounter;
-  29   1        HAL_LEDCounter++;
-  30   1        if(HAL_LEDCounter>499)
-  31   1        {
-  32   2          HAL_LEDCounter=0;
-  33   2          P67=!P67;
-  34   2        }
-  35   1      }
-  36          #endif
+              void HAL_MCU_LED_TEST()
+              {
+                static unsigned int HAL_LEDCounter;
+                HAL_LEDCounter++;
+                if(HAL_LEDCounter>499)
+                {
+                  HAL_LEDCounter=0;
+                  P67=!P67;
+                }
+              }
+              #endif
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     64    ----
+   CODE SIZE        =     39    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      2    ----
+   DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
 END OF MODULE INFORMATION.

@@ -1,4 +1,4 @@
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 1   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 1   
 
 
 C51 COMPILER V9.59.0.0, COMPILATION OF MODULE PARA
@@ -62,7 +62,7 @@ line level    source
   45   3              }
   46   2           }        
   47   1           return 1;        
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 2   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 2   
 
   48   1      }
   49          //恢复出厂设置函数功能
@@ -126,7 +126,7 @@ line level    source
  103   2               (NormalUserVair[i].rfidData[3] == Rfid_Num[3]))
  104   2             {
  105   3                return (i + MAX_ADMIN_USER_NUMBER);  // 返回普通用户的索引（加上管理员数量偏移）
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 3   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 3   
 
  106   3             }
  107   2           }
@@ -190,7 +190,7 @@ line level    source
  165   2              }
  166   1              return 0xff;
  167   1      }
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 4   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 4   
 
  168          //判断识别到的RFID数据是否已经保存到了内存中
  169          unsigned char ParaCompareRfidId(unsigned char *Rfid_Num) 
@@ -254,7 +254,7 @@ line level    source
  227   2                     {
  228   3                        for(i=0;i<MAX_USER_NUMBER;i++)
  229   3                        {
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 5   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 5   
 
  230   4                           if((NormalUserVair[i].mark) == 1)
  231   4                           {        
@@ -318,7 +318,7 @@ line level    source
  287          void ParaSaveHistoryVair(str_historyVari vari)
  288          {
  289   1              unsigned char xdata id;
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 6   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 6   
 
  290   1              if(historyManageVari.SumNumber < MAX_HOSTORY_NUMBER)
  291   1              {        
@@ -382,7 +382,7 @@ line level    source
  347   3                  }
  348   2              }
  349   1              return id;
-C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 7   
+C51 COMPILER V9.59.0.0   PARA                                                              05/21/2026 17:28:24 PAGE 7   
 
  350   1      }
  351          //将数据保存到EEPROM中

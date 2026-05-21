@@ -1,4 +1,4 @@
-C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 1   
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/21/2026 17:28:22 PAGE 1   
 
 
 C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_TOUCHKEY
@@ -62,7 +62,7 @@ line level    source
   49          void HAL_TouchKey_pro()
   50          {
   51   1        unsigned char xdata TKj;
-C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 2   
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/21/2026 17:28:22 PAGE 2   
 
   52   1        if(TouchKey_Task.ReadTouchkeyok)
   53   1        {
@@ -90,96 +90,95 @@ line level    source
   75   5                  TouchKey_Task.TK_counter[TKj]--;
   76   5                else
   77   5                  TouchKey_Task.touchkey_state[TKj]=0;
-  78   5      
-  79   5              }//从通道零开始依次比较至通道15
-  80   4              else if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj]-TouchKey_Task.TK_differ[TKj])//触摸按键已
+  78   5              }//从通道零开始依次比较至通道15
+  79   4              else if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj]-TouchKey_Task.TK_differ[TKj])//触摸按键已
              -按下
-  81   4              {
-  82   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;//零点跟随计数清零
-  83   5                TouchKey_Task.Zero_Down_cnt[TKj]=0;
-  84   5                
-  85   5                TouchKey_Task.TK_counter[TKj]++;//触摸按键延时消抖
-  86   5                if(TouchKey_Task.TK_counter[TKj]>HAL_Touchkey_Timercnt)
-  87   5                TouchKey_Task.touchkey_state[TKj]=1;//表示通道TKJ已经按下
-  88   5              }
-  89   4              else
-  90   4              {
-  91   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;
-  92   5                if(TouchKey_Task.Zero_Down_cnt[TKj]<100)//先延时，在执行零点跟随，零点下移
-  93   5                {
-  94   6                  TouchKey_Task.Zero_Down_cnt[TKj]++;
-  95   6                }
-  96   5                else
-  97   5                {
-  98   6                  if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj])
-  99   6                  {
- 100   7                    TouchKey_Task.TK_zero[TKj]-=1;
- 101   7                  }
- 102   6                }
- 103   5                
- 104   5                if(TouchKey_Task.TK_counter[TKj]>0)
- 105   5                  TouchKey_Task.TK_counter[TKj]--;
- 106   5                else
- 107   5                  TouchKey_Task.touchkey_state[TKj]=0;
- 108   5              }
- 109   4            }
- 110   3          }
- 111   2          
- 112   2        }
-C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 3   
+  80   4              {
+  81   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;//零点跟随计数清零
+  82   5                TouchKey_Task.Zero_Down_cnt[TKj]=0;
+  83   5                
+  84   5                TouchKey_Task.TK_counter[TKj]++;//触摸按键延时消抖
+  85   5                if(TouchKey_Task.TK_counter[TKj]>HAL_Touchkey_Timercnt)
+  86   5                TouchKey_Task.touchkey_state[TKj]=1;//表示通道TKJ已经按下
+  87   5              }
+  88   4              else
+  89   4              {
+  90   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;
+  91   5                if(TouchKey_Task.Zero_Down_cnt[TKj]<100)//先延时，在执行零点跟随，零点下移
+  92   5                {
+  93   6                  TouchKey_Task.Zero_Down_cnt[TKj]++;
+  94   6                }
+  95   5                else
+  96   5                {
+  97   6                  if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj])
+  98   6                  {
+  99   7                    TouchKey_Task.TK_zero[TKj]-=1;
+ 100   7                  }
+ 101   6                }
+ 102   5                
+ 103   5                if(TouchKey_Task.TK_counter[TKj]>0)
+ 104   5                  TouchKey_Task.TK_counter[TKj]--;
+ 105   5                else
+ 106   5                  TouchKey_Task.touchkey_state[TKj]=0;
+ 107   5              }
+ 108   4            }
+ 109   3          }
+ 110   2          
+ 111   2        }
+ 112   1      }
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/21/2026 17:28:22 PAGE 3   
 
- 113   1      }
- 114          void HAL_TouchKey_Set_Zero()
- 115          {
- 116   1        unsigned char xdata TKi;
- 117   1        if(!TouchKey_Task.zero_Flag)
- 118   1        {
- 119   2          //先扫描零点触摸值20次(TouchKey_Task.ScanFreq),在将值放入零点值缓冲区
- 120   2          if(TouchKey_Task.zero_cnt>TouchKey_Task.ScanFreq)
- 121   2          {
- 122   3            TouchKey_Task.zero_Flag=1;
- 123   3            for(TKi=0;TKi<HAL_Touchkey_SUM;TKi++)
- 124   3            {
- 125   4              TouchKey_Task.TK_zero[TKi]=TouchKey_Task.TK_cnt[TKi];
- 126   4            }
- 127   3          }
- 128   2        }
- 129   1      }
- 130          unsigned char HAL_TouchKey_GetState(unsigned char TKnum)
- 131          {
- 132   1        if(TouchKey_Task.touchkey_state[TKnum])
- 133   1        {
- 134   2          return 1;
- 135   2        }
- 136   1        else
- 137   1        {
- 138   2          return 0;
- 139   2        }
- 140   1      }
- 141          
- 142          #ifdef HAL_TOUCHKEY_TEST_ENABLE
- 143          
- 144          #endif
- 145          void HAL_TouchKey_Interrupt() interrupt 35
- 146          {
- 147   1        unsigned int xdata databuff;
- 148   1        databuff=TSSTA2;
- 149   1        if(databuff&0x40)
- 150   1        {
- 151   2          TSSTA2 |=0x40;
- 152   2        }
- 153   1        if(databuff&0x80)
- 154   1        {
- 155   2          TSSTA2 |=0x80;
- 156   2          databuff &=0x0F;//TSSTA2前四位是已扫描完成通道值
- 157   2          TouchKey_Task.TK_cnt[databuff]=TSDAT;
- 158   2          if(databuff == HAL_Touchkey_SUM-1)
- 159   2          {
- 160   3            TouchKey_Task.zero_cnt++;
- 161   3            TouchKey_Task.ReadTouchkeyok=1;
- 162   3          }
- 163   2        }
- 164   1      }
+ 113          void HAL_TouchKey_Set_Zero()
+ 114          {
+ 115   1        unsigned char xdata TKi;
+ 116   1        if(!TouchKey_Task.zero_Flag)
+ 117   1        {
+ 118   2          //先扫描零点触摸值20次(TouchKey_Task.ScanFreq),在将值放入零点值缓冲区
+ 119   2          if(TouchKey_Task.zero_cnt>TouchKey_Task.ScanFreq)
+ 120   2          {
+ 121   3            TouchKey_Task.zero_Flag=1;
+ 122   3            for(TKi=0;TKi<HAL_Touchkey_SUM;TKi++)
+ 123   3            {
+ 124   4              TouchKey_Task.TK_zero[TKi]=TouchKey_Task.TK_cnt[TKi];
+ 125   4            }
+ 126   3          }
+ 127   2        }
+ 128   1      }
+ 129          unsigned char HAL_TouchKey_GetState(unsigned char TKnum)
+ 130          {
+ 131   1        if(TouchKey_Task.touchkey_state[TKnum])
+ 132   1        {
+ 133   2          return 1;
+ 134   2        }
+ 135   1        else
+ 136   1        {
+ 137   2          return 0;
+ 138   2        }
+ 139   1      }
+ 140          
+ 141          #ifdef HAL_TOUCHKEY_TEST_ENABLE
+ 142          
+ 143          #endif
+ 144          void HAL_TouchKey_Interrupt() interrupt 35
+ 145          {
+ 146   1        unsigned int xdata databuff;
+ 147   1        databuff=TSSTA2;
+ 148   1        if(databuff&0x40)
+ 149   1        {
+ 150   2          TSSTA2 |=0x40;
+ 151   2        }
+ 152   1        if(databuff&0x80)
+ 153   1        {
+ 154   2          TSSTA2 |=0x80;
+ 155   2          databuff &=0x0F;//TSSTA2前四位是已扫描完成通道值
+ 156   2          TouchKey_Task.TK_cnt[databuff]=TSDAT;
+ 157   2          if(databuff == HAL_Touchkey_SUM-1)
+ 158   2          {
+ 159   3            TouchKey_Task.zero_cnt++;
+ 160   3            TouchKey_Task.ReadTouchkeyok=1;
+ 161   3          }
+ 162   2        }
+ 163   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
@@ -190,9 +189,9 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =   ----    ----
-C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 4   
-
 END OF MODULE INFORMATION.
+
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/21/2026 17:28:22 PAGE 4   
 
 
 C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
