@@ -1,0 +1,76 @@
+C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_TASK
+OBJECT MODULE PLACED IN .\Objects\HAL_Task.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_Task.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_Task.lst) TABS(2) OBJECT(.\Objects\HAL_Task.obj
+                    -)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_TASK.H"
+   3          #include "HAL_BACKLIGHT.H"
+   4          #include "HAL_TIMER4.H"
+   5          #include "HAL_GPIO.H"
+   6          #include "HAL_TOUCHKEY.H" 
+   7          #include "HAL_TFTLCD_SPI.H"
+   8          #include "HAL_DS1302.H"
+   9          #include "HAL_PWMA_HORN.H"
+  10          #include "HAL_PWMB_RFID.H"
+  11          #include "HAL_UART.H"
+  12          #include "HAL_RS485.H"
+  13          #include "HAL_WIEGAND.H"
+  14          #include "HAL_WIEGAND_RECEIVE.H"
+  15          #include "HAL_LOCK.H"
+  16          #include "HAL_IIC.h"
+  17          void HAL_Task_Init()
+  18          {
+  19   1        P_SW2 |=0x80;//访问外部特殊功能寄存器
+  20   1        HAL_GPIO_Init();//IO口初始化
+  21   1        HAL_Timer4_Init();//定时器4初始化函数,定时器4用作时间片轮询基准
+  22   1        HAL_BackLight_All_OFF();//背光灯熄灭
+  23   1        HAL_TouchKey_Init();//触摸按键初始化
+  24   1        HAL_TFTLCD_SpiInit();//SPI初始化
+  25   1        HAL_TFTLCD_Init();//TFT液晶屏初始化
+  26   1        HAL_PWMA_Init();//PWMA喇叭初始化
+  27   1        HAL_PWMB_RFID_Init();//RFID功能初始化
+  28   1        HAL_UART1_Init();//串口1初始化
+  29   1        HAL_RS485_Init();//RS485硬件初始化
+  30   1        HAL_Wiegand_Init();//Wiegand初始化
+  31   1        HAL_Wiegand_Receive_Init();//接收Wiegand传来的数据
+  32   1        HAL_LOCK_Init();//锁初始化
+  33   1        HAL_IICInit();//IIC初始化
+  34   1      }
+  35          void HAL_Task()
+  36          {
+  37   1        HAL_TouchKey_pro();//处理触摸按键
+  38   1        HAL_RS485_Process();//处理接收数据
+  39   1        HAL_WG_process();//处理Wiegand发送数据包
+  40   1        HAL_Wiegand_Receive_Process();//处理Wiegand传来的数据
+  41   1        Hal_Lock_Pro();//处理锁的开闭
+  42   1        Hal_LockKey_Pro();//处理内部开关按键
+  43   1        #ifdef HAL_BACKLIGHT_TEST_ENABLE
+                HAL_BackLight_TEST();
+                #endif
+  46   1        #ifdef HAL_MCU_LED_TEST_ENABLE
+  47   1          HAL_MCU_LED_TEST();
+  48   1        #endif
+  49   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     66    ----
+C51 COMPILER V9.59.0.0   HAL_TASK                                                          05/13/2026 22:47:35 PAGE 2   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

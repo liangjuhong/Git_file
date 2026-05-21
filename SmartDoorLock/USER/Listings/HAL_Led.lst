@@ -1,0 +1,41 @@
+C51 COMPILER V9.59.0.0   HAL_LED                                                           03/20/2026 21:08:12 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_LED
+OBJECT MODULE PLACED IN .\Objects\HAL_Led.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_Led.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\H
+                    -AL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_Led.lst) TABS(2) OBJECT(.\Objects\HAL_Led.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_LED.H"
+   3          #ifdef HAL_LED_TEST_ENABLE
+              
+              #define LED P67
+              void HAL_LED_Init()
+              {
+                P6M0 |=0x80;
+                P6M1 &=0x7F;
+                LED=1;
+              }
+              
+              void HAL_LED_TEST()
+              {
+                LED=!LED;
+              }
+              #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

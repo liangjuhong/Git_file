@@ -1,0 +1,112 @@
+C51 COMPILER V9.59.0.0   HAL_BACKLIGHT                                                     05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_BACKLIGHT
+OBJECT MODULE PLACED IN .\Objects\HAL_Backlight.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_Backlight.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\AP
+                    -P;..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_Backlight.lst) TABS(2) OBJECT(.\Objects\HA
+                    -L_Backlight.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_BACKLIGHT.H"
+   3          #define HAL_TKEY_LED1 P05
+   4          #define HAL_TKEY_LED2 P06
+   5          #define HAL_TKEY_LED3 P07
+   6          #define HAL_TKEY_LED4 P60
+   7          
+   8          #define HAL_TKEY_COM1 P04
+   9          #define HAL_TKEY_COM2 P45
+  10          #define HAL_TKEY_COM3 P75
+  11          #define HAL_TKEY_COM4 P33
+  12          //所有背光灯熄灭
+  13          void HAL_BackLight_All_OFF()
+  14          {
+  15   1        HAL_TKEY_LED1=0;
+  16   1        HAL_TKEY_LED2=0;
+  17   1        HAL_TKEY_LED3=0;
+  18   1        HAL_TKEY_LED4=0;
+  19   1      
+  20   1        HAL_TKEY_COM1=1;
+  21   1        HAL_TKEY_COM2=1;
+  22   1        HAL_TKEY_COM3=1;
+  23   1        HAL_TKEY_COM4=1;
+  24   1      }
+  25          //所有背光灯点亮
+  26          void HAL_BackLight_All_ON()
+  27          {
+  28   1        HAL_TKEY_LED1=1;
+  29   1        HAL_TKEY_LED2=1;
+  30   1        HAL_TKEY_LED3=1;
+  31   1        HAL_TKEY_LED4=1;
+  32   1      
+  33   1        HAL_TKEY_COM1=0;
+  34   1        HAL_TKEY_COM2=0;
+  35   1        HAL_TKEY_COM3=0;
+  36   1        HAL_TKEY_COM4=0;
+  37   1      }
+  38          //Light范围是0~15
+  39          void HAL_BackLight_Control(HAL_BackLightTypedef Light)
+  40          {
+  41   1        unsigned char xdata numA,numB;
+  42   1        HAL_BackLight_All_OFF();
+  43   1        numA=Light/4;
+  44   1        numB=Light%4;
+  45   1        switch(numA)
+  46   1        {
+  47   2          case 0:HAL_TKEY_LED1=1;
+  48   2          break;
+  49   2          case 1:HAL_TKEY_LED2=1;
+  50   2          break;
+  51   2          case 2:HAL_TKEY_LED3=1;
+  52   2          break;
+  53   2          case 3:HAL_TKEY_LED4=1;
+C51 COMPILER V9.59.0.0   HAL_BACKLIGHT                                                     05/13/2026 22:47:35 PAGE 2   
+
+  54   2          break;
+  55   2        }
+  56   1        switch(numB)
+  57   1        {
+  58   2          case 0:HAL_TKEY_COM1=0;
+  59   2          break;
+  60   2          case 1:HAL_TKEY_COM2=0;
+  61   2          break;
+  62   2          case 2:HAL_TKEY_COM3=0;
+  63   2          break;
+  64   2          case 3:HAL_TKEY_COM4=0;
+  65   2          break;
+  66   2        }
+  67   1      }
+  68          
+  69          #ifdef HAL_BACKLIGHT_TEST_ENABLE
+              void HAL_BackLight_TEST()
+              {
+                static unsigned int xdata BLcounter;
+                static unsigned char xdata i;
+                BLcounter++;
+                if(BLcounter>999)
+                {
+                  BLcounter=0;
+                  HAL_BackLight_Control(i++);
+                  if(i==16)
+                  {
+                    i=0;
+                  }
+                }
+              }
+              #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    109    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

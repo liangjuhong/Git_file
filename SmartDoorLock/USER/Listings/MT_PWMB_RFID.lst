@@ -1,0 +1,86 @@
+C51 COMPILER V9.59.0.0   MT_PWMB_RFID                                                      05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MT_PWMB_RFID
+OBJECT MODULE PLACED IN .\Objects\MT_PWMB_RFID.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\MT\MT_PWMB_RFID.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;
+                    -..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\MT_PWMB_RFID.lst) TABS(2) OBJECT(.\Objects\MT_PW
+                    -MB_RFID.obj)
+
+line level    source
+
+   1          #include "HAL_PWMB_RFID.H"
+   2          #include "MT_PWMB_RFID.H"
+   3          
+   4          MT_RFID_Task xdata RFID_Task_init;
+   5          void MT_PWMB_RFID_Init()
+   6          {
+   7   1          RFID_Task_init.state=0;
+   8   1          RFID_Task_init.rfid_receive_timer=0;
+   9   1          RFID_Task_init.rfid_receive_flag=0;
+  10   1      }
+  11          void MT_PWMB_RFID_Process()
+  12          {
+  13   1          if(Hal_PWMB_GetRfidData(RFID_Task_init.RfidData))
+  14   1          {
+  15   2              if(RFID_Task_init.state==0)
+  16   2              {
+  17   3                  RFID_Task_init.state=1;
+  18   3              }
+  19   2              RFID_Task_init.rfid_receive_timer=0;
+  20   2          }
+  21   1          if(RFID_Task_init.state)
+  22   1          {
+  23   2              RFID_Task_init.rfid_receive_timer++;
+  24   2              if(RFID_Task_init.rfid_receive_timer==MT_RFID_TIMER_MAX)
+  25   2              {
+  26   3                  RFID_Task_init.rfid_receive_timer=0;
+  27   3                  RFID_Task_init.state=0;//未接收数据状态
+  28   3                  RFID_Task_init.rfid_receive_flag=0;//上层未接收数据
+  29   3              }
+  30   2              if(RFID_Task_init.state==1)
+  31   2              {
+  32   3                  RFID_Task_init.state=2;//数据接收完成
+  33   3                  RFID_Task_init.rfid_receive_flag=0;//上层未接收数据
+  34   3              }
+  35   2          }
+  36   1      }
+  37          unsigned char MT_PWMB_GetRfidData(unsigned char *rfidNum)
+  38          {
+  39   1          if(RFID_Task_init.state==2)
+  40   1          {
+  41   2              if(RFID_Task_init.rfid_receive_flag==0)
+  42   2              {
+  43   3                  RFID_Task_init.rfid_receive_flag=1;//上层应用已接收数据状态
+  44   3                  *rfidNum=RFID_Task_init.RfidData[1];
+  45   3                  rfidNum++;
+  46   3                  *rfidNum=RFID_Task_init.RfidData[2];
+  47   3                  rfidNum++;
+  48   3                  *rfidNum=RFID_Task_init.RfidData[3];
+  49   3                  rfidNum++;
+  50   3                  *rfidNum=RFID_Task_init.RfidData[4];
+  51   3                  RFID_Task_init.RfidData[1]=0xff;
+  52   3                  RFID_Task_init.RfidData[2]=0xff;
+  53   3                  RFID_Task_init.RfidData[3]=0xff;
+C51 COMPILER V9.59.0.0   MT_PWMB_RFID                                                      05/13/2026 22:47:36 PAGE 2   
+
+  54   3                  RFID_Task_init.RfidData[4]=0xff;
+  55   3                  return 1;
+  56   3              }
+  57   2          }
+  58   1          return 0;
+  59   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    159    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

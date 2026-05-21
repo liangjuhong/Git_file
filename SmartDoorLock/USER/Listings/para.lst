@@ -1,0 +1,414 @@
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE PARA
+OBJECT MODULE PLACED IN .\Objects\para.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\APP\para.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\HAL;
+                    -..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\para.lst) TABS(2) OBJECT(.\Objects\para.obj)
+
+line level    source
+
+   1          #include "para.h"
+   2          #include "MT_IIC_AT24C128.H"
+   3          str_AdminUserVair xdata adminUserVair[MAX_ADMIN_USER_NUMBER];  // 管理员用户数组
+   4          str_NormalUserVair xdata NormalUserVair[MAX_USER_NUMBER];      // 普通用户数组
+   5          str_historyVari xdata historyVari[MAX_HOSTORY_NUMBER];//保存历史记录数组
+   6          en_historyManageVari xdata historyManageVari;  //历史记录管理
+   7          str_SystemVari xdata SystemVari;                        //系统参数管理
+   8          
+   9          static unsigned char ParaCheck(void);
+  10          // 初始化参数
+  11          void PartInit(void)
+  12          {
+  13   1          MT_IICReaddata(EEP_ADDR_ADMINUSERPARA_OFFSET,(unsigned char*)(&adminUserVair),sizeof(adminUserVair)); 
+             -       
+  14   1          MT_IICReaddata(EEP_ADDR_NORMALUSERPARA_OFFSET,(unsigned char*)(&NormalUserVair),sizeof(NormalUserVair)
+             -);  
+  15   1          MT_IICReaddata(EEP_ADDR_SYSTEMPARA_OFFSET,(unsigned char*)(&SystemVari),sizeof(SystemVari));
+  16   1          MT_IICReaddata(EEP_ADDR_HISTORYMANAGEPARA_OFFSET,(unsigned char*)(&historyManageVari),sizeof(historyMa
+             -nageVari));
+  17   1          MT_IICReaddata(EEP_ADDR_HISTORYPARA_OFFSET,(unsigned char*)(&historyVari),sizeof(historyVari));
+  18   1          
+  19   1          if(ParaCheck() == 0)
+  20   1          {
+  21   2              ParaToHistory();
+  22   2              MT_IICReaddata(EEP_ADDR_ADMINUSERPARA_OFFSET,(unsigned char*)(&adminUserVair),sizeof(adminUserVair
+             -));        
+  23   2              MT_IICReaddata(EEP_ADDR_NORMALUSERPARA_OFFSET,(unsigned char*)(&NormalUserVair),sizeof(NormalUserV
+             -air));
+  24   2              MT_IICReaddata(EEP_ADDR_SYSTEMPARA_OFFSET,(unsigned char*)(&SystemVari),sizeof(SystemVari));
+  25   2              MT_IICReaddata(EEP_ADDR_HISTORYMANAGEPARA_OFFSET,(unsigned char*)(&historyManageVari),sizeof(histo
+             -ryManageVari));
+  26   2              MT_IICReaddata(EEP_ADDR_HISTORYPARA_OFFSET,(unsigned char*)(&historyVari),sizeof(historyVari));   
+             -     
+  27   2          }
+  28   1      }
+  29          // 检查是否有无效的数据
+  30          static unsigned char ParaCheck(void)
+  31          {
+  32   1           unsigned char xdata i;
+  33   1           for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+  34   1           {
+  35   2             if((adminUserVair[i].mark) > 1)
+  36   2             {
+  37   3                return 0;
+  38   3             }
+  39   2           }        
+  40   1           for(i=0;i<MAX_USER_NUMBER;i++)
+  41   1           {
+  42   2              if((NormalUserVair[i].mark) > 1)
+  43   2              {
+  44   3                return 0;
+  45   3              }
+  46   2           }        
+  47   1           return 1;        
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 2   
+
+  48   1      }
+  49          //恢复出厂设置函数功能
+  50          void ParaToHistory(void)
+  51          {
+  52   1           unsigned char xdata i,j;
+  53   1           for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+  54   1           {
+  55   2              adminUserVair[i].mark = 0;
+  56   2              adminUserVair[i].id = 0xff;
+  57   2              for(j=0;j<4;j++)
+  58   2              {
+  59   3                 adminUserVair[i].password[j] = 0xff;
+  60   3                 adminUserVair[i].rfidData[j] = 0xff;        
+  61   3              }
+  62   2           }        
+  63   1           for(i=0;i<MAX_USER_NUMBER;i++)
+  64   1           {
+  65   2              NormalUserVair[i].mark = 0;
+  66   2              NormalUserVair[i].id = 0xff;
+  67   2              for(j=0;j<4;j++)
+  68   2              {
+  69   3                NormalUserVair[i].rfidData[j]  = 0xff;        
+  70   3              }
+  71   2           }
+  72   1           historyManageVari.SumNumber = 0;
+  73   1           historyManageVari.startPointer = 0;
+  74   1           SystemVari.Switch_Rs485OutPut = SWITCH_OPEN;
+  75   1           SystemVari.Switch_WGOutPut = SWITCH_OPEN;
+  76   1           MT_IICWritePage(EEP_ADDR_ADMINUSERPARA_OFFSET,(unsigned char*)(&adminUserVair),sizeof(adminUserVair))
+             -;        
+  77   1           MT_IICWritePage(EEP_ADDR_NORMALUSERPARA_OFFSET,(unsigned char*)(&NormalUserVair),sizeof(NormalUserVai
+             -r));
+  78   1           MT_IICWritePage(EEP_ADDR_SYSTEMPARA_OFFSET,(unsigned char*)(&SystemVari),sizeof(SystemVari));        
+  79   1           MT_IICWritePage(EEP_ADDR_HISTORYMANAGEPARA_OFFSET,(unsigned char*)(&historyManageVari),sizeof(history
+             -ManageVari));
+  80   1           MT_IICWritePage(EEP_ADDR_HISTORYPARA_OFFSET,(unsigned char*)(&historyVari),sizeof(historyVari));     
+             -                   
+  81   1      }
+  82          //检查读取的RFID数据是否已经被学习
+  83          unsigned char ParaCheckRfidData(unsigned char *Rfid_Num)
+  84          {
+  85   1           unsigned char xdata i;
+  86   1           for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+  87   1           {
+  88   2             if((adminUserVair[i].mark == 1) &&
+  89   2              (adminUserVair[i].rfidData[0] == Rfid_Num[0]) &&
+  90   2              (adminUserVair[i].rfidData[1] == Rfid_Num[1]) &&
+  91   2              (adminUserVair[i].rfidData[2] == Rfid_Num[2]) &&
+  92   2              (adminUserVair[i].rfidData[3] == Rfid_Num[3]))
+  93   2             {
+  94   3                return i;  // 返回管理员的索引
+  95   3             }
+  96   2           }
+  97   1           for(i=0;i<MAX_USER_NUMBER;i++)
+  98   1           {
+  99   2             if((NormalUserVair[i].mark == 1) &&
+ 100   2               (NormalUserVair[i].rfidData[0] == Rfid_Num[0]) &&
+ 101   2               (NormalUserVair[i].rfidData[1] == Rfid_Num[1]) &&
+ 102   2               (NormalUserVair[i].rfidData[2] == Rfid_Num[2]) &&
+ 103   2               (NormalUserVair[i].rfidData[3] == Rfid_Num[3]))
+ 104   2             {
+ 105   3                return (i + MAX_ADMIN_USER_NUMBER);  // 返回普通用户的索引（加上管理员数量偏移）
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 3   
+
+ 106   3             }
+ 107   2           }
+ 108   1           return 0xff;  // 返回0xff表示没有找到匹配的RFID
+ 109   1      }
+ 110          //检查密码数据是否被录入
+ 111          unsigned char ParaCheckPassWordData(unsigned char *PassWord)
+ 112          {
+ 113   1              unsigned char xdata i;
+ 114   1              unsigned char xdata markflag = 0;  // 用于标记是否所有管理员标识都无效
+ 115   1              for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+ 116   1              {
+ 117   2                 if(adminUserVair[i].mark == 1)
+ 118   2                 {
+ 119   3                    if((adminUserVair[i].password[0] == PassWord[0]) &&
+ 120   3                       (adminUserVair[i].password[1] == PassWord[1]) &&
+ 121   3                       (adminUserVair[i].password[2] == PassWord[2]) &&
+ 122   3                       (adminUserVair[i].password[3] == PassWord[3]))
+ 123   3                    {
+ 124   4                      return i;  // 返回管理员的索引
+ 125   4                    }                
+ 126   3                 }
+ 127   2                 else
+ 128   2                 {
+ 129   3                    markflag ++;  // 标记无效的管理员
+ 130   3                 }
+ 131   2              }
+ 132   1              if(markflag == MAX_ADMIN_USER_NUMBER)
+ 133   1              {  // 如果所有管理员的标识都无效
+ 134   2                  return 0xfe;  // 返回0xfe表示出厂状态
+ 135   2              }
+ 136   1              return 0xff;  // 返回0xff表示没有找到匹配的密码
+ 137   1      }
+ 138          
+ 139          //检测当前的用户ID是否已经被学习
+ 140          unsigned char ParaUserInfo(unsigned char CurrentId) 
+ 141          {
+ 142   1              unsigned char xdata i;
+ 143   1              unsigned char xdata HaveAddUserId =0;
+ 144   1              for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+ 145   1              {
+ 146   2                if((adminUserVair[i].mark) == 1)
+ 147   2                {        
+ 148   3                  HaveAddUserId ++;
+ 149   3                }
+ 150   2                if(HaveAddUserId == CurrentId)
+ 151   2                {
+ 152   3                  return i;
+ 153   3                }        
+ 154   2              }        
+ 155   1              for(i=0;i<MAX_USER_NUMBER;i++)
+ 156   1              {
+ 157   2                if((NormalUserVair[i].mark) == 1)
+ 158   2                {        
+ 159   3                  HaveAddUserId ++;
+ 160   3                }
+ 161   2                if(HaveAddUserId == CurrentId)
+ 162   2                {
+ 163   3                  return (i+MAX_ADMIN_USER_NUMBER);
+ 164   3                }                                
+ 165   2              }
+ 166   1              return 0xff;
+ 167   1      }
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 4   
+
+ 168          //判断识别到的RFID数据是否已经保存到了内存中
+ 169          unsigned char ParaCompareRfidId(unsigned char *Rfid_Num) 
+ 170          {
+ 171   1              unsigned char xdata i;
+ 172   1              unsigned char xdata HaveAddUserId =0;
+ 173   1              for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+ 174   1              {
+ 175   2                if(adminUserVair[i].mark == 1)
+ 176   2                {
+ 177   3                  HaveAddUserId ++;
+ 178   3                  if((adminUserVair[i].rfidData[0] == Rfid_Num[0]) 
+ 179   3                     &&(adminUserVair[i].rfidData[1] == Rfid_Num[1]) 
+ 180   3                     &&(adminUserVair[i].rfidData[2] == Rfid_Num[2])                 
+ 181   3                     &&(adminUserVair[i].rfidData[3] == Rfid_Num[3]))
+ 182   3                   {
+ 183   4                       return HaveAddUserId;        
+ 184   4                   }                
+ 185   3                }
+ 186   2              }
+ 187   1              for(i=0;i<MAX_USER_NUMBER;i++)
+ 188   1              {
+ 189   2                 if(NormalUserVair[i].mark == 1)
+ 190   2                 {
+ 191   3                    HaveAddUserId ++;
+ 192   3                    if((NormalUserVair[i].rfidData[0] == Rfid_Num[0]) 
+ 193   3                    &&(NormalUserVair[i].rfidData[1] == Rfid_Num[1]) 
+ 194   3                    &&(NormalUserVair[i].rfidData[2] == Rfid_Num[2])                 
+ 195   3                    &&(NormalUserVair[i].rfidData[3] == Rfid_Num[3]))
+ 196   3                    {
+ 197   4                      return HaveAddUserId;        
+ 198   4                    }           
+ 199   3                 }
+ 200   2              }
+ 201   1              return 0xff;
+ 202   1      }
+ 203          //获取当前的普通用户或管理员，或历史记录的个数
+ 204          unsigned char ParaGetSumNumber(unsigned char en_ParaType,unsigned char *getId) 
+ 205          {
+ 206   1              unsigned char xdata i,resum = 0;
+ 207   1              *getId = 0xff;
+ 208   1              switch(en_ParaType)
+ 209   1              { 
+ 210   2                case EN_PARATYPE_ADMINUSER:
+ 211   2                     {
+ 212   3                       for(i=0;i<MAX_ADMIN_USER_NUMBER;i++)
+ 213   3                       {
+ 214   4                         if((adminUserVair[i].mark) == 1)
+ 215   4                         {        
+ 216   5                           resum ++;
+ 217   5                         }
+ 218   4                         else
+ 219   4                         {
+ 220   5                           if(*getId == 0xff)
+ 221   5                             *getId = i;
+ 222   5                         }
+ 223   4                       }
+ 224   3                     }
+ 225   2                break;
+ 226   2                case EN_PARATYPE_NORMALUSER:
+ 227   2                     {
+ 228   3                        for(i=0;i<MAX_USER_NUMBER;i++)
+ 229   3                        {
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 5   
+
+ 230   4                           if((NormalUserVair[i].mark) == 1)
+ 231   4                           {        
+ 232   5                              resum ++;
+ 233   5                           }
+ 234   4                           else
+ 235   4                           {
+ 236   5                              if(*getId == 0xff)
+ 237   5                               *getId = i;
+ 238   5                           }                                
+ 239   4                        }
+ 240   3                     }
+ 241   2                break;
+ 242   2                case EN_PARATYPE_HISTORY:
+ 243   2                     {
+ 244   3                        for(i=0;i<MAX_HOSTORY_NUMBER;i++)
+ 245   3                        {
+ 246   4                          if((historyVari[i].mark))
+ 247   4                          {        
+ 248   5                             resum ++;
+ 249   5                          }
+ 250   4                          else
+ 251   4                          {
+ 252   5                             if(*getId == 0xff)
+ 253   5                             *getId = i;
+ 254   5                          }                                
+ 255   4                        }
+ 256   3                     }
+ 257   2                break;
+ 258   2              }
+ 259   1              return resum;
+ 260   1      }
+ 261          //保存管理员数据
+ 262          void ParaSaveAdminVair(unsigned char id,str_AdminUserVair vari)
+ 263          {
+ 264   1              xdata unsigned char i;
+ 265   1              adminUserVair[id].mark = 1;
+ 266   1              adminUserVair[id].id = id+1;
+ 267   1              for(i=0;i<4;i++)
+ 268   1              {
+ 269   2                adminUserVair[id].password[i] = vari.password[i];
+ 270   2                adminUserVair[id].rfidData[i] = vari.rfidData[i];         
+ 271   2              }
+ 272   1              MT_IICWritePage(EEP_ADDR_ADMINUSERPARA_OFFSET,(unsigned char*)(&adminUserVair),sizeof(adminUserVai
+             -r));        
+ 273   1      }
+ 274          //保存普通用户信息
+ 275          void ParaSaveNormalVair(unsigned char id,str_NormalUserVair vari)
+ 276          {
+ 277   1              xdata unsigned char i;
+ 278   1              NormalUserVair[id].mark = 1;
+ 279   1              NormalUserVair[id].id = (id + MAX_ADMIN_USER_NUMBER +1);
+ 280   1              for(i=0;i<4;i++)
+ 281   1              {
+ 282   2                NormalUserVair[id].rfidData[i] = vari.rfidData[i];         
+ 283   2              }
+ 284   1              MT_IICWritePage(EEP_ADDR_NORMALUSERPARA_OFFSET,(unsigned char*)(&NormalUserVair),sizeof(NormalUser
+             -Vair));        
+ 285   1      }
+ 286          //保存历史记录数据
+ 287          void ParaSaveHistoryVair(str_historyVari vari)
+ 288          {
+ 289   1              unsigned char xdata id;
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 6   
+
+ 290   1              if(historyManageVari.SumNumber < MAX_HOSTORY_NUMBER)
+ 291   1              {        
+ 292   2                 id = historyManageVari.SumNumber;
+ 293   2                 historyManageVari.SumNumber ++;        
+ 294   2                 historyManageVari.startPointer = 0;
+ 295   2              }
+ 296   1              else
+ 297   1              {//10
+ 298   2                 id = historyManageVari.startPointer;
+ 299   2                 historyManageVari.startPointer ++;
+ 300   2                 if(historyManageVari.startPointer == MAX_HOSTORY_NUMBER)
+ 301   2                 {
+ 302   3                    historyManageVari.startPointer = 0;
+ 303   3                 }
+ 304   2              }
+ 305   1              historyVari[id].mark = 1;        
+ 306   1              historyVari[id].userid = vari.userid;
+ 307   1              historyVari[id].year = vari.year;        
+ 308   1              historyVari[id].month = vari.month;        
+ 309   1              historyVari[id].day = vari.day;
+ 310   1              historyVari[id].hour = vari.hour;
+ 311   1              historyVari[id].minute = vari.minute;        
+ 312   1              historyVari[id].sec = vari.sec;
+ 313   1              historyVari[id].type = vari.type;
+ 314   1              MT_IICWritePage(EEP_ADDR_HISTORYMANAGEPARA_OFFSET,(unsigned char*)(&historyManageVari),sizeof(hist
+             -oryManageVari));
+ 315   1              MT_IICWritePage(EEP_ADDR_HISTORYPARA_OFFSET+id*SIZE_HISTORYVARI_PARA_SIZE,(unsigned char*)(&histor
+             -yVari[id]),SIZE_HISTORYVARI_PARA_SIZE);        
+ 316   1      }
+ 317          //获取历史记录数据
+ 318          unsigned char ParaGetHistoryVari(unsigned char NumId)
+ 319          {
+ 320   1              unsigned char xdata id;  //输出数据的历史记录ID号；
+ 321   1              if((NumId == 0) || (NumId > MAX_HOSTORY_NUMBER))
+ 322   1                      return 0XFF;
+ 323   1              if(historyManageVari.SumNumber < MAX_HOSTORY_NUMBER)
+ 324   1              {
+ 325   2                      ////如果最大记录是10；  SumNumber->3     0 1 2 3 4 5 6 7 8 9;
+ 326   2                 //NumId = 1；->2;
+ 327   2                 //NumId = 2；->1;5  2
+ 328   2                 //NumId = 3；->0;
+ 329   2                 id = historyManageVari.SumNumber - NumId;
+ 330   2              }
+ 331   1              else
+ 332   1              {  ////如果最大记录是10；   P = 2;   0 1 2 3 4 5 6 7 8 9;
+ 333   2                 //NumId = 1；->1;
+ 334   2                 //NumId = 2；->0;
+ 335   2                 //NumId = 3；->9;
+ 336   2                 //NumId = 4；->8;
+ 337   2                 //NumId = 5；->7;
+ 338   2                 //NumId = 6；->6;
+ 339   2                 // ......  
+ 340   2                  if(historyManageVari.startPointer >= NumId)
+ 341   2                  {
+ 342   3                     id = historyManageVari.startPointer - NumId;
+ 343   3                  }
+ 344   2                  else
+ 345   2                  {
+ 346   3                     id = historyManageVari.startPointer + MAX_HOSTORY_NUMBER - NumId;
+ 347   3                  }
+ 348   2              }
+ 349   1              return id;
+C51 COMPILER V9.59.0.0   PARA                                                              05/13/2026 22:47:37 PAGE 7   
+
+ 350   1      }
+ 351          //将数据保存到EEPROM中
+ 352          void ParaSaveAllVair(void)
+ 353          {
+ 354   1              MT_IICWritePage(EEP_ADDR_ADMINUSERPARA_OFFSET,(unsigned char*)(&adminUserVair),sizeof(adminUserVai
+             -r));        
+ 355   1              MT_IICWritePage(EEP_ADDR_NORMALUSERPARA_OFFSET,(unsigned char*)(&NormalUserVair),sizeof(NormalUser
+             -Vair));
+ 356   1              MT_IICWritePage(EEP_ADDR_SYSTEMPARA_OFFSET,(unsigned char*)(&SystemVari),sizeof(SystemVari));
+ 357   1              MT_IICWritePage(EEP_ADDR_HISTORYMANAGEPARA_OFFSET,(unsigned char*)(&historyManageVari),sizeof(hist
+             -oryManageVari));
+ 358   1              MT_IICWritePage(EEP_ADDR_HISTORYPARA_OFFSET,(unsigned char*)(&historyVari),sizeof(historyVari));  
+             -      
+ 359   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2522    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   1245      16
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      27
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

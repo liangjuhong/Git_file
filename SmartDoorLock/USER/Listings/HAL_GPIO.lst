@@ -1,0 +1,61 @@
+C51 COMPILER V9.59.0.0   HAL_GPIO                                                          05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_GPIO
+OBJECT MODULE PLACED IN .\Objects\HAL_GPIO.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_GPIO.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_GPIO.lst) TABS(2) OBJECT(.\Objects\HAL_GPIO.obj
+                    -)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_GPIO.H"
+   3          
+   4          #define MCU_LED P67
+   5          void HAL_GPIO_Init()
+   6          {
+   7   1        P0M0=0xE0;
+   8   1        P0M1=0x00;
+   9   1        P1M0=0x00;
+  10   1        P1M1=0x00;
+  11   1        P2M0=0x00;
+  12   1        P2M1=0x00;
+  13   1        P3M0=0x00;
+  14   1        P3M1=0x00;
+  15   1        P4M0=0x00;
+  16   1        P4M1=0x00;
+  17   1        P5M0=0x00;
+  18   1        P5M1=0x00;
+  19   1        P6M0=0x81;
+  20   1        P6M1=0x00;
+  21   1        P7M0=0x10;
+  22   1        P7M1=0x00;
+  23   1        P67=1;
+  24   1      }
+  25          #ifdef HAL_MCU_LED_TEST_ENABLE
+  26          void HAL_MCU_LED_TEST()
+  27          {
+  28   1        static unsigned int HAL_LEDCounter;
+  29   1        HAL_LEDCounter++;
+  30   1        if(HAL_LEDCounter>499)
+  31   1        {
+  32   2          HAL_LEDCounter=0;
+  33   2          P67=!P67;
+  34   2        }
+  35   1      }
+  36          #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     64    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

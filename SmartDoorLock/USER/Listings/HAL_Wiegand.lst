@@ -1,0 +1,205 @@
+C51 COMPILER V9.59.0.0   HAL_WIEGAND                                                       05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_WIEGAND
+OBJECT MODULE PLACED IN .\Objects\HAL_Wiegand.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_Wiegand.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;
+                    -..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_Wiegand.lst) TABS(2) OBJECT(.\Objects\HAL_Wi
+                    -egand.obj)
+
+line level    source
+
+   1          /*
+   2          ±¾³ÌÐòÓÃÓÚ´¦Àí·¢ËÍWiegandÊý¾Ý°ü(Êý¾ÝÓÉ¶¨Ê±Æ÷ÖÐ¶Ï×ÔÐÐ·¢ËÍ)
+   3          Í¨¹ý¶¨Ê±Æ÷3²úÉúÊ±¼ä¼ä¸ô
+   4          ¼ì²â½ÓÊÕµ½µÄRFIDÊý¾Ý£¬²¢Í¨¹ýWiegandÐ­Òé·¢ËÍÊý¾Ý
+   5          */
+   6          #include <STC8H.H>
+   7          #include "HAL_WIEGAND.H"
+   8          #include "HAL_PWMB_RFID.H"
+   9          #include "STRING.h"
+  10          #include "MT_TFTLCD.H"
+  11          #define HAL_WGD0 P61//WiegandÊý¾ÝÏß0,Êä³ö0
+  12          #define HAL_WGD1 P62//WiegandÊý¾ÝÏß1,Êä³ö1
+  13          
+  14          #define HAL_WGD0_High HAL_WGD0=0//WiegandÊý¾ÝÏß0¸ßµçÆ½
+  15          #define HAL_WGD0_Low HAL_WGD0=1//WiegandÊý¾ÝÏß0µÍµçÆ½
+  16          #define HAL_WGD1_High HAL_WGD1=0//WiegandÊý¾ÝÏß1¸ßµçÆ½
+  17          #define HAL_WGD1_Low HAL_WGD1=1//WiegandÊý¾ÝÏß1µÍµçÆ½
+  18          
+  19          //200us=1/0.0002
+  20          #define HAL_Timer3_200us (65536-MAIN_Fosc/12/5000)
+  21          //2ms=1/0.002
+  22          #define HAL_Timer3_2ms (65536-MAIN_Fosc/12/500)
+  23          xdata HAL_WiegandTypedef HAL_WG_Struct;
+  24          void HAL_Timer3_Config(void)//¶¨Ê±Æ÷3³õÊ¼»¯
+  25          {
+  26   1          T4T3M &=0xF0;//¶¨Ê±Æ÷3ÅäÖÃ12TÄ£Ê½
+  27   1          TM3PS=0x00;//¶¨Ê±Æ÷3Ô¤·ÖÆµÎª1
+  28   1          T4T3M &=0xF7;//¹Ø±Õ¶¨Ê±Æ÷3
+  29   1          IE2 &=0xDF;//¹Ø±Õ¶¨Ê±Æ÷3ÖÐ¶ÏÇëÇó 1101 1111
+  30   1      }
+  31          void HAL_Wiegand_Init(void)
+  32          {
+  33   1          HAL_Timer3_Config();//¶¨Ê±Æ÷3³õÊ¼»¯
+  34   1          HAL_WG_Struct.Swit=0;//ÈÎÎñ¿ª¹Ø
+  35   1          HAL_WG_Struct.RxInterVal=0;//·¢ËÍ¼ä¸ô¼ÆÊ±Æ÷
+  36   1          HAL_WG_Struct.DataSendState=HAL_WG_data_pulse;//Êý¾ÝÂö³å×´Ì¬
+  37   1          HAL_WG_Struct.SentDatNum=0;//ÒÑ·¢ËÍÎ»Êý¼ÆÊýÆ÷
+  38   1          HAL_WG_Struct.EvenParity_Bit0=0;//Å¼Ð£ÑéÎ»,µÚ0Î»Ð£Ñé
+  39   1          memset(HAL_WG_Struct.Data,0,3);//³õÊ¼»¯Êý¾Ý»º³åÇø
+  40   1          HAL_WG_Struct.OddParity_Bit25=0;//ÆæÐ£ÑéÎ»,µÚ25Î»Ð£Ñé
+  41   1          memset(HAL_WG_Struct.RFIDBuffer,0,5);//ÇåRFID»º³åÇøÇå0
+  42   1          HAL_WGD0_High;//Êý¾ÝÏß0¿ÕÏÐ×´Ì¬
+  43   1          HAL_WGD1_High;//Êý¾ÝÏß1¿ÕÏÐ×´Ì¬
+  44   1      }
+  45          //ÆæÅ¼Ð£Ñéº¯Êý
+  46          //static unsigned char HAL_ParityCheck(unsigned char dat)//Ð£ÑéÎ»Ð£Ñé
+  47          //{
+  48          //    xdata unsigned char i,parity=0;
+  49          //    for(i=0;i<8;i++)
+  50          //    {
+  51          //        if(dat&0x80)//ÅÐ¶Ï×î¸ßÎ»ÊÇ·ñÎª1
+  52          //        {
+  53          //            parity++;
+C51 COMPILER V9.59.0.0   HAL_WIEGAND                                                       05/13/2026 22:47:36 PAGE 2   
+
+  54          //        }
+  55          //        dat<<=1;
+  56          //    }
+  57          //    return parity;
+  58          //}
+  59          //Êý¾Ý°ü×¼±¸·¢ËÍ,WG26
+  60          void HAL_WG_DataReady(unsigned char *dat)
+  61          {
+  62   1          xdata unsigned char Parity_count;
+  63   1          HAL_WG_Struct.Data[0]=dat[0];
+  64   1          HAL_WG_Struct.Data[1]=dat[1];
+  65   1          HAL_WG_Struct.Data[2]=dat[2];
+  66   1        
+  67   1          Parity_count=(HAL_WG_Struct.Data[1])&0xf0;//µÚ2Î»µ½µÚ13Î»Ð£Ñé  
+  68   1          Parity_count^=HAL_WG_Struct.Data[0];
+  69   1          Parity_count^=Parity_count>>4;
+  70   1          Parity_count^=Parity_count>>2;
+  71   1          Parity_count^=Parity_count>>1;
+  72   1          HAL_WG_Struct.EvenParity_Bit0=!(Parity_count&1);
+  73   1        
+  74   1          Parity_count=(HAL_WG_Struct.Data[1])&0x0f;
+  75   1          Parity_count^=HAL_WG_Struct.Data[2];
+  76   1          Parity_count^=Parity_count>>4;
+  77   1          Parity_count^=Parity_count>>2;
+  78   1          Parity_count^=Parity_count>>1;
+  79   1          HAL_WG_Struct.OddParity_Bit25=Parity_count&1;
+  80   1        
+  81   1          HAL_WG_Struct.Swit=1;//ÈÎÎñ¿ª¹Ø,ÇëÇó·¢ËÍÊý¾Ý°ü
+  82   1      }
+  83          //´Ëº¯ÊýÓÃÓÚ·¢ËÍµ¥¸öÊý¾Ý£¨0 ºÍ 1£©
+  84          void HAL_WG_SendData(HAL_WiegandStateTypedef State,unsigned char dat)//·¢ËÍÊý¾Ý
+  85          {
+  86   1          if(State==HAL_WG_data_pulse)//Êý¾ÝÂö³å×´Ì¬
+  87   1          {
+  88   2              T3H=HAL_Timer3_200us>>8;
+  89   2              T3L=HAL_Timer3_200us;
+  90   2              if(dat)
+  91   2              {
+  92   3                  HAL_WGD1_Low;//Êý¾ÝÏß1µÍµçÆ½
+  93   3              }
+  94   2              else
+  95   2              {
+  96   3                  HAL_WGD0_Low;//Êý¾ÝÏß0µÍµçÆ½
+  97   3              }
+  98   2          }
+  99   1          if(State==HAL_WG_High_level)//¸ßµçÆ½×´Ì¬
+ 100   1          {
+ 101   2              T3H=HAL_Timer3_2ms>>8;
+ 102   2              T3L=HAL_Timer3_2ms;
+ 103   2              HAL_WGD0_High;//Êý¾ÝÏß0¸ßµçÆ½
+ 104   2              HAL_WGD1_High;//Êý¾ÝÏß1¸ßµçÆ½
+ 105   2          }
+ 106   1      }
+ 107          void HAL_WG_process(void)//´¦ÀíÊý¾Ý°ü
+ 108          {
+ 109   1          if(HAL_WG_Struct.RxInterVal)
+ 110   1          {
+ 111   2              HAL_WG_Struct.RxInterVal++;
+ 112   2              if(HAL_WG_Struct.RxInterVal>=HAL_Timer_number)//ÑÓÊ±300ms
+ 113   2              {
+ 114   3                  HAL_WG_Struct.RxInterVal=0;
+ 115   3              }
+C51 COMPILER V9.59.0.0   HAL_WIEGAND                                                       05/13/2026 22:47:36 PAGE 3   
+
+ 116   2              return;
+ 117   2          }
+ 118   1          if(HAL_WG_Struct.Swit)//ÅÐ¶ÏÊÇ·ñÐèÒª·¢ËÍÊý¾ÝÂö³å
+ 119   1          {
+ 120   2            if(HAL_WG_Struct.EvenParity_Bit0)
+ 121   2            {
+ 122   3               HAL_WG_SendData(HAL_WG_data_pulse,1);//·¢ËÍÊý¾ÝÂö³å,µÚ0Î»Îª1
+ 123   3            }
+ 124   2            else
+ 125   2            {
+ 126   3               HAL_WG_SendData(HAL_WG_data_pulse,0);//·¢ËÍÊý¾ÝÂö³å,µÚ0Î»Îª0
+ 127   3            }
+ 128   2            HAL_WG_Struct.DataSendState=HAL_WG_High_level;//×´Ì¬ÇÐ»»±êÖ¾,ÏÂ´ÎÖÐ¶ÏÒª·¢ËÍ¸ßµçÆ½¼ä¸ô
+ 129   2            HAL_WG_Struct.RxInterVal=1;//·¢ËÍ¼ä¸ô¼ÆÊ±Æ÷,ÖØÖÃÎª1
+ 130   2            HAL_WG_Struct.SentDatNum=1;
+ 131   2            T4T3M |=0x08;//¿ªÆô¶¨Ê±Æ÷3
+ 132   2            IE2 |=0x20;//¿ªÆô¶¨Ê±Æ÷3ÖÐ¶ÏÇëÇó
+ 133   2          }
+ 134   1      }
+ 135          
+ 136          void HAL_Timer3_Interrupt() interrupt 19
+ 137          {
+ 138   1          if(HAL_WG_Struct.DataSendState==HAL_WG_High_level)//ÅÐ¶ÏÊÇ·ñÐèÒª·¢ËÍÊý¾Ý°ü
+ 139   1          {
+ 140   2              HAL_WG_Struct.DataSendState=HAL_WG_data_pulse;//×´Ì¬ÇÐ»»±êÖ¾,ÏÂ´ÎÖÐ¶ÏÒª·¢ËÍ¸ßµçÆ½¼ä¸ô
+ 141   2              HAL_WG_SendData(HAL_WG_High_level,0);//·¢ËÍ¸ßµçÆ½¼ä¸ô,µÚ0Î»Îª0
+ 142   2              if(HAL_WG_Struct.SentDatNum>=26)
+ 143   2              {
+ 144   3                  HAL_WG_Struct.Swit=0;//ÈÎÎñ¿ª¹Ø,·¢ËÍÍê³É,µÈ´ýÏÂÒ»´Î·¢ËÍ
+ 145   3                  T4T3M &=0xF7;//¹Ø±Õ¶¨Ê±Æ÷3
+ 146   3                  IE2 &=0xDF;//¹Ø±Õ¶¨Ê±Æ÷3ÖÐ¶ÏÇëÇó 1101 1111
+ 147   3              }
+ 148   2          }
+ 149   1          if(HAL_WG_Struct.DataSendState==HAL_WG_data_pulse)//ÅÐ¶ÏÊÇ·ñÐèÒª·¢ËÍ¸ßµçÆ½¼ä¸ô
+ 150   1          {
+ 151   2              unsigned char cnt_char,cnt_bit,dat;
+ 152   2              HAL_WG_Struct.DataSendState=HAL_WG_High_level;//×´Ì¬ÇÐ»»±êÖ¾,ÏÂ´ÎÖÐ¶ÏÒª·¢ËÍÊý¾ÝÂö³å
+ 153   2              cnt_char=(HAL_WG_Struct.SentDatNum-1)/8;
+ 154   2              cnt_bit=(HAL_WG_Struct.SentDatNum-1)%8;
+ 155   2              dat=HAL_WG_Struct.Data[cnt_char];
+ 156   2              if(HAL_WG_Struct.SentDatNum<25)
+ 157   2              {
+ 158   3                  if((dat<<cnt_bit)&0x80)//0000 0000
+ 159   3                  {
+ 160   4                      HAL_WG_SendData(HAL_WG_data_pulse,1);//·¢ËÍÊý¾ÝÂö³å
+ 161   4                  }
+ 162   3                  else
+ 163   3                  {
+ 164   4                      HAL_WG_SendData(HAL_WG_data_pulse,0);//·¢ËÍÊý¾ÝÂö³å
+ 165   4                  }
+ 166   3              }
+ 167   2              if(HAL_WG_Struct.SentDatNum==25)
+ 168   2              {
+ 169   3                  HAL_WG_SendData(HAL_WG_data_pulse, HAL_WG_Struct.OddParity_Bit25);//·¢ËÍÊý¾ÝÂö³å,µÚ26Î»ÎªÆæÐ£Ñ
+             -éÎ»
+ 170   3              }
+ 171   2              HAL_WG_Struct.SentDatNum++;
+ 172   2          }
+ 173   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+C51 COMPILER V9.59.0.0   HAL_WIEGAND                                                       05/13/2026 22:47:36 PAGE 4   
+
+   CODE SIZE        =    543    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     15       1
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

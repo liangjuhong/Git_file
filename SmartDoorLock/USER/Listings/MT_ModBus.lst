@@ -1,0 +1,61 @@
+C51 COMPILER V9.59.0.0   MT_MODBUS                                                         05/13/2026 22:47:37 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MT_MODBUS
+OBJECT MODULE PLACED IN .\Objects\MT_ModBus.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\MT\MT_ModBus.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\MT_ModBus.lst) TABS(2) OBJECT(.\Objects\MT_ModBus.o
+                    -bj)
+
+line level    source
+
+   1          #include "HAL_RS485.H"
+   2          #include "MT_MODBUS.H"
+   3          
+   4          tru_ModBusDat xdata modBusDat;
+   5          unsigned int xdata DataClearDlayTim;
+   6          
+   7          void mt_modbus_Init(void)
+   8          {
+   9   1        DataClearDlayTim = TIM_HOLD_MODBUSDAT;  
+  10   1      } 
+  11          void mt_modbus_Pro(void)
+  12          {
+  13   1        unsigned char buf[] ={0xff,0xff,0xff,0xff};
+  14   1        if(DataClearDlayTim)
+  15   1        {
+  16   2          DataClearDlayTim ++;
+  17   2          if(DataClearDlayTim > TIM_HOLD_MODBUSDAT)//TIM_HOLD_MODBUSDATµÈÓÚ5000
+  18   2          {
+  19   3            mt_modbus_UpdateDat(0xff,0xff,buf);
+  20   3            DataClearDlayTim = 0;
+  21   3          } 
+  22   2        }
+  23   1      }
+  24          void mt_modbus_UpdateDat(unsigned char userid,unsigned char type,unsigned char *dat)
+  25          {
+  26   1        modBusDat.userId_Hb = 0;
+  27   1        modBusDat.userId_Lb = userid;
+  28   1        modBusDat.Type_Hb = 0;
+  29   1        modBusDat.Type_Lb = type;
+  30   1        modBusDat.Data[0] = dat[0];
+  31   1        modBusDat.Data[1] = dat[1];
+  32   1        modBusDat.Data[2] = dat[2];
+  33   1        modBusDat.Data[3] = dat[3]; 
+  34   1        hal_modbus_UpdateDat((unsigned char *)(&modBusDat.userId_Hb),8);  //
+  35   1        DataClearDlayTim = 1;
+  36   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    161    ----
+   CONSTANT SIZE    =      4    ----
+   XDATA SIZE       =     10    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       4
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

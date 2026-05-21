@@ -1,0 +1,58 @@
+C51 COMPILER V9.59.0.0   MAIN                                                              05/13/2026 22:47:34 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\HAL;..\MT;.
+                    -.\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include "HAL_TIMER4.H"
+   2          #include "HAL_TASK.H"
+   3          #include "MT_TASK.H"
+   4          #include "APP_TASK.H" 
+   5          #include "HAL_PWMB_RFID.h"
+   6          #include <stdio.h>
+   7          #include <STC8H.H>
+   8          
+   9          void main()
+  10          {
+  11   1        HAL_Task_Init();
+  12   1        MT_Task_Init();
+  13   1        APP_Task_Init();
+  14   1        printf("a");
+  15   1        while(1)
+  16   1        {
+  17   2          Hal_PWMB_RFID_Pro();
+  18   2          if(systick_ms==1)
+  19   2          {
+  20   3            systick_ms=0;
+  21   3            HAL_Task();
+  22   3            MT_Task();
+  23   3            APP_Task();
+  24   3          }
+  25   2        }
+  26   1      }
+  27          // 自己写 fputc，不用管头文件有没有
+  28          int fputc(int ch)
+  29          {
+  30   1          SBUF = ch;         // 串口发送
+  31   1          while(!TI);        // 等待发完
+  32   1          TI = 0;            // 清标志
+  33   1          return ch;
+  34   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =     48    ----
+   CONSTANT SIZE    =      2    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

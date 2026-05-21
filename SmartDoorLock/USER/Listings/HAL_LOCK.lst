@@ -1,0 +1,105 @@
+C51 COMPILER V9.59.0.0   HAL_LOCK                                                          05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_LOCK
+OBJECT MODULE PLACED IN .\Objects\HAL_LOCK.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_LOCK.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_LOCK.lst) TABS(2) OBJECT(.\Objects\HAL_LOCK.obj
+                    -)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_LOCK.h"
+   3          //电控锁引脚定义
+   4          #define HAL_LOCK_PIN P72
+   5          #define LOCK_OPEN_LEVEL    1  // 高电平触发开锁
+   6          #define LOCK_CLOSE_LEVEL   0  // 低电平触发关锁
+   7          
+   8          //内部开关按键定义，按下KEY1则为高电平，松开则为低电平
+   9          #define HAL_KEY1_PIN P34
+  10          
+  11          //锁的开闭脉冲宽度，单位：ms
+  12          #define LOCK_OPEN_PULSE_MS  50 
+  13          #define KEY_DEBOUNCE_TIME_MS 5 // 10ms消抖时间
+  14          static unsigned int xdata g_u16LockOpenTimer = 0;
+  15          static unsigned char xdata g_u8KeyDebounceTimer = 0;
+  16          void HAL_LOCK_Init()
+  17          {
+  18   1          P3M0 |=0x10;//P34配置为推挽输出模式
+  19   1          HAL_KEY1_PIN=0;//设置KEY1为低电平
+  20   1      
+  21   1          P7M0 |=0x04;//设置P72为推挽输出模式
+  22   1          g_u16LockOpenTimer = 0;//初始化软件定时器为0，表示锁未开
+  23   1          HAL_LOCK_PIN=LOCK_CLOSE_LEVEL;//默认关闭锁
+  24   1      }
+  25          //触发开锁
+  26          void Hal_Lock_TriggerOpen(void)
+  27          {
+  28   1          // 只有在当前不在开锁状态时，才允许触发新的开锁动作
+  29   1          if (g_u16LockOpenTimer == 0)
+  30   1          {
+  31   2              HAL_LOCK_PIN = LOCK_OPEN_LEVEL; // 立即开锁
+  32   2              g_u16LockOpenTimer = LOCK_OPEN_PULSE_MS; // 装填软件定时器
+  33   2          }
+  34   1      }
+  35          //处理锁的开闭
+  36          void Hal_Lock_Pro(void)
+  37          {
+  38   1          // 如果软件定时器不为0，则进行倒计时
+  39   1          if (g_u16LockOpenTimer > 0)
+  40   1          {
+  41   2              g_u16LockOpenTimer--;
+  42   2              // 当倒计时结束
+  43   2              if (g_u16LockOpenTimer == 0)
+  44   2              {
+  45   3                  HAL_LOCK_PIN = LOCK_CLOSE_LEVEL; // 自动关锁
+  46   3              }
+  47   2          }
+  48   1      }
+  49          void Hal_LockKey_Pro(void)
+  50          {
+  51   1          if(HAL_KEY1_PIN)
+  52   1          {///内部开关按下
+  53   2              if(g_u8KeyDebounceTimer  < KEY_DEBOUNCE_TIME_MS )
+C51 COMPILER V9.59.0.0   HAL_LOCK                                                          05/13/2026 22:47:36 PAGE 2   
+
+  54   2              {
+  55   3                  g_u8KeyDebounceTimer  ++;
+  56   3                  if(g_u8KeyDebounceTimer   == KEY_DEBOUNCE_TIME_MS )
+  57   3                  {
+  58   4                      Hal_Lock_TriggerOpen();        
+  59   4                  }
+  60   3              }
+  61   2          }
+  62   1          else
+  63   1          {
+  64   2              g_u8KeyDebounceTimer = 0;  
+  65   2          }
+  66   1      }
+  67          //获取锁的状态
+  68          unsigned char Hal_Lock_GetPutKeySta(void)
+  69          {
+  70   1          if(g_u16LockOpenTimer)
+  71   1          {//非0 表示 电锁 打开
+  72   2              return LOCK_OPEN_LEVEL;
+  73   2          }
+  74   1          else
+  75   1          {
+  76   2              return LOCK_CLOSE_LEVEL;
+  77   2          }
+  78   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    125    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      3    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

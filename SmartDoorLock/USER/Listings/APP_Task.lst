@@ -1,0 +1,2062 @@
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE APP_TASK
+OBJECT MODULE PLACED IN .\Objects\APP_Task.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\APP\APP_Task.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\APP_Task.lst) TABS(2) OBJECT(.\Objects\APP_Task.obj
+                    -)
+
+line level    source
+
+   1          #include "APP_TASK.H" 
+   2          #include "HAL_DS1302.H"
+   3          #include "MT_TFTLCD.H"
+   4          #include "MT_DS1302.H"
+   5          #include "HAL_PWMB_RFID.H"
+   6          #include "MT_TK_LED.H"
+   7          #include "string.H"
+   8          #include "HAL_LOCK.H"
+   9          #include "MT_IIC_AT24C128.H"
+  10          #include "para.h"
+  11          #include "MT_PWMB_RFID.H"
+  12          #include "HAL_PWMA_HORN.H"
+  13          #include "HAL_WIEGAND_RECEIVE.H"
+  14          #include "HAL_WIEGAND.H"
+  15          #include "HAL_RS485.H"
+  16          #include "MT_MODBUS.H"
+  17          MT_TIME_Typedef xdata BackUpDs1302Data; // 
+  18          // ´´½¨Ò»¸öÈ«¾ÖµÄ½á¹¹ÌåÊµÀý£¬¹©Õû¸ö³ÌÐòÊ¹ÓÃ
+  19          str_AppMenuVair xdata AppMenuVair;
+  20          extern MT_TIME_Typedef xdata TIME_Task;//ÉùÃ÷Íâ²¿±äÁ¿
+  21          // --- ²Ëµ¥¹¦ÄÜº¯ÊýÉùÃ÷ ---
+  22          static void App_Menu_Desktop(void);
+  23          static void App_Menu_Password(void);
+  24          static void App_Menu_KeyOpenLock(void);
+  25          static void App_Menu_MainMenu(void);
+  26          static void App_Menu_DateTimeSeting(void);
+  27          static void App_Menu_AddNerUser(void);
+  28          static void App_Menu_ManageUserInfo(void);
+  29          static void App_Menu_SystemSet(void);
+  30          static void App_Menu_History(void);
+  31          static void App_Menu_DisPlayRFIDNum(unsigned char x,unsigned char y,unsigned char *p);
+  32          static void App_History_Write(unsigned char id,en_historyType type);//¼ÇÂ¼¿ªËøµÄÊ±¼ä
+  33          void APP_Task_Init()
+  34          {
+  35   1          PartInit();//´ÓEEPROMÖÐ¶ÁÈ¡ÏµÍ³²ÎÊý
+  36   1          AppMenuVair.MenuPoint = MENU_DESKTOP;//³õÊ¼×´Ì¬Îª´ý»ú½çÃæ
+  37   1          AppMenuVair.UiDisplay = TFTLCD_UI_INIT;//UIÐèÒª³õÊ¼»¯£¨ÍêÈ«ÖØ»æ£©
+  38   1          AppMenuVair.TouchKeyNum = 0xff;//³õÊ¼»¯°´¼üÖµÎª0xff£¬±íÊ¾Î´°´ÏÂÈÎºÎ°´¼ü
+  39   1      
+  40   1          BackUpDs1302Data.year = 0xff;
+  41   1          BackUpDs1302Data.month = 0xff;
+  42   1          BackUpDs1302Data.day = 0xff;
+  43   1          BackUpDs1302Data.hour = 0xff;
+  44   1          BackUpDs1302Data.minute = 0xff;
+  45   1          BackUpDs1302Data.second = 0xff;        
+  46   1          MT_TFTLCD_Showstring(50,90,"2023-11-13",COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);  //1602
+  47   1      }
+  48          void APP_Task()
+  49          {
+  50   1      // 1. Ê¹ÓÃswitchÓï¾ä£¬¸ù¾Ýµ±Ç°µÄ×´Ì¬(MenuPoint)À´¾ö¶¨Ö´ÐÐÄÄ¸ö¹¦ÄÜº¯Êý
+  51   1          switch(AppMenuVair.MenuPoint)
+  52   1          {
+  53   2              case MENU_INIT:
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 2   
+
+  54   2                      // ³õÊ¼×´Ì¬£¬Í¨³£ÓÃÓÚÖ´ÐÐÒ»´ÎÐÔ³õÊ¼»¯»òÖ±½ÓÌø×ªµ½Ö÷½çÃæ
+  55   2                      // ÕâÀï¿ÉÒÔÁô¿Õ»òÌí¼ÓÌØ¶¨Âß¼­
+  56   2              break;
+  57   2      
+  58   2              case MENU_DESKTOP:
+  59   2                      App_Menu_Desktop(); // Èç¹ûÔÚ´ý»ú½çÃæ£¬¾ÍÖ´ÐÐ´ý»ú½çÃæµÄ´¦Àíº¯Êý
+  60   2              break;
+  61   2      
+  62   2              case MENU_KEY_OPENLOCK:
+  63   2                      App_Menu_KeyOpenLock(); // Ö´ÐÐ°´¼ü¿ªËø½çÃæµÄ´¦Àíº¯Êý
+  64   2              break;
+  65   2      
+  66   2              case MENU_PASSWORD:
+  67   2                      App_Menu_Password(); // Èç¹ûÔÚÃÜÂë½çÃæ£¬¾ÍÖ´ÐÐÃÜÂë½çÃæµÄ´¦Àíº¯Êý
+  68   2              break;
+  69   2      
+  70   2              case MENU_MAINMENU:
+  71   2                      App_Menu_MainMenu(); // Ö´ÐÐÖ÷²Ëµ¥½çÃæµÄ´¦Àíº¯Êý
+  72   2              break;
+  73   2      
+  74   2              case MENU_SET_TIME:
+  75   2                      App_Menu_DateTimeSeting(); // Ö´ÐÐÊ±¼äÈÕÆÚÉèÖÃ½çÃæµÄ´¦Àíº¯Êý
+  76   2              break;
+  77   2      
+  78   2              case MENU_AND_USER:
+  79   2                      App_Menu_AddNerUser(); // Ö´ÐÐÌí¼ÓÐÂÓÃ»§½çÃæµÄ´¦Àíº¯Êý
+  80   2              break;
+  81   2      
+  82   2              case MENU_SET_USER:
+  83   2                      App_Menu_ManageUserInfo(); // Ö´ÐÐ¹ÜÀíÓÃ»§ÐÅÏ¢½çÃæµÄ´¦Àíº¯Êý
+  84   2              break;
+  85   2      
+  86   2              case MENU_SET_SETTING:
+  87   2                      App_Menu_SystemSet(); // Ö´ÐÐÏµÍ³ÉèÖÃ½çÃæµÄ´¦Àíº¯Êý
+  88   2              break;
+  89   2      
+  90   2              case MENU_HISTORY:
+  91   2                      App_Menu_History(); // Ö´ÐÐÀúÊ·¼ÇÂ¼½çÃæµÄ´¦Àíº¯Êý
+  92   2              break;
+  93   2            }
+  94   1      // 2. ÊµÏÖ¡°ÎÞ²Ù×÷×Ô¶¯·µ»Ø´ý»ú½çÃæ¡±µÄ¹¦ÄÜ
+  95   1            if(AppMenuVair.MenuPoint != MENU_DESKTOP) // Èç¹ûµ±Ç°²»ÔÚ´ý»ú½çÃæ
+  96   1            {
+  97   2            // ¼ì²é°´¼ü±³¹â¼ÆÊ±Æ÷ÊÇ·ñÒÑ³¬Ê± (ÒâÎ¶×Å³¤Ê±¼äÎÞ°´¼ü²Ù×÷)
+  98   2                if(Mt_Key_GetBackLightTim() < 30000)
+  99   2                {
+ 100   3                    // µ÷ÓÃ²Ëµ¥ÇÐ»»º¯Êý£¬Ç¿ÖÆ·µ»Øµ½´ý»ú×ÀÃæ
+ 101   3                    App_Task_MenuToggle(MENU_DESKTOP, TFTLCD_UI_INIT);        
+ 102   3                    MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);//Çå³ýÆÁÄ»
+ 103   3                }
+ 104   2            } 
+ 105   1      }
+ 106          /**
+ 107           * @brief  ²Ëµ¥(×´Ì¬)Ìø×ªº¯Êý
+ 108           * @param  type: ÒªÌø×ªµÄÄ¿±ê²Ëµ¥
+ 109           * @param  refresh: ÊÇ·ñÐèÒªË¢ÐÂUI
+ 110           */
+ 111          void App_Task_MenuToggle(En_Menu_Type type, En_TftlcdUi_Type refresh)
+ 112          {
+ 113   1          // 1. ¸üÐÂºËÐÄ×´Ì¬±äÁ¿£¬Ö¸ÏòÐÂµÄ²Ëµ¥
+ 114   1              AppMenuVair.MenuPoint = type;
+ 115   1          
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 3   
+
+ 116   1          // 2. ÉèÖÃUIË¢ÐÂ±êÖ¾
+ 117   1              AppMenuVair.UiDisplay = refresh;
+ 118   1          
+ 119   1          // 3. ÖØÖÃ°´¼üÖµ£¬·ÀÖ¹¾ÉµÄ°´¼üÓ°ÏìÐÂ½çÃæ
+ 120   1              AppMenuVair.TouchKeyNum = 0xff;        
+ 121   1      }
+ 122          //TFTLCDÏÔÊ¾ÆÁÏÔÊ¾RFIDÊý¾Ý
+ 123          static void App_Menu_DisPlayRFIDNum(unsigned char x,unsigned char y,unsigned char *p)
+ 124          {
+ 125   1          unsigned long xdata deci;
+ 126   1          deci = (unsigned long)(p[3]);
+ 127   1          deci += ((unsigned long)p[2] << 8);
+ 128   1          deci += ((unsigned long)p[1] << 16);
+ 129   1          deci += ((unsigned long)p[0] << 24);        
+ 130   1          AppMenuVair.DisplayDat[0] = (unsigned char)(deci%10000000000/1000000000 + 0x30);
+ 131   1          AppMenuVair.DisplayDat[1] = (unsigned char)(deci%1000000000/100000000 + 0x30);
+ 132   1          AppMenuVair.DisplayDat[2] = (unsigned char)(deci%100000000/10000000 + 0x30);
+ 133   1          AppMenuVair.DisplayDat[3] = (unsigned char)(deci%10000000/1000000 + 0x30);
+ 134   1          AppMenuVair.DisplayDat[4] = (unsigned char)(deci%1000000/100000 + 0x30);
+ 135   1          AppMenuVair.DisplayDat[5] = (unsigned char)(deci%100000/10000 + 0x30);
+ 136   1          AppMenuVair.DisplayDat[6] = (unsigned char)(deci%10000/1000 + 0x30);
+ 137   1          AppMenuVair.DisplayDat[7] = (unsigned char)(deci%1000/100 + 0x30);
+ 138   1          AppMenuVair.DisplayDat[8] = (unsigned char)(deci%100/10 + 0x30);
+ 139   1          AppMenuVair.DisplayDat[9] = (unsigned char)(deci%10 + 0x30);        
+ 140   1          AppMenuVair.DisplayDat[10] = 0; 
+ 141   1      //    MT_TFTLCD_Showstring(x-30,y,"RFID:",WHITE,BLACK,12,0);  
+ 142   1          MT_TFTLCD_Showstring(x,y,&AppMenuVair.DisplayDat,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,16,0);
+             - 
+ 143   1      }
+ 144          // --- ´ý»ú×ÀÃæ²Ëµ¥´¦Àíº¯Êý ---
+ 145          static void App_Menu_Desktop()
+ 146          {
+ 147   1          static xdata unsigned int DisPlayDelayTim = 0;//RFIDÊý¾ÝÏÔÊ¾ÑÓ³ÙÊ±¼ä
+ 148   1          static xdata unsigned int TIME_Cnt=0;//Ê±¼ä¼ÆÊýÆ÷£¬1s¶ÁÈ¡Ò»´ÎDS1302Ê±¼ä
+ 149   1          static xdata unsigned int Door_Cnt=0;//ÃÅ×´Ì¬¼ÆÊýÆ÷£¬ÓÃÓÚÏÔÊ¾ÃÅ×´Ì¬
+ 150   1          unsigned char userid;              // ´æ´¢²éÑ¯µ½µÄÓÃ»§ID
+ 151   1          unsigned char xdata GetRfidDat[5];//±£´æ¶ÁÈ¡µÄRFIDÊý¾Ý
+ 152   1          unsigned char idata datDisplay[3];//±£´æBCDÂë×ª»»ºóµÄ×Ö·û´®
+ 153   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)//Èç¹ûUIÐèÒª³õÊ¼»¯
+ 154   1          {
+ 155   2              AppMenuVair.UiDisplay = TFTLCD_UI_NULL;//³õÊ¼»¯UIÎªÎÞË¢ÐÂ×´Ì¬
+ 156   2              BackUpDs1302Data.year = 0xff;
+ 157   2              BackUpDs1302Data.month = 0xff;
+ 158   2              BackUpDs1302Data.day = 0xff;
+ 159   2              BackUpDs1302Data.hour = 0xff;
+ 160   2              BackUpDs1302Data.minute = 0xff;
+ 161   2              BackUpDs1302Data.second = 0xff; 
+ 162   2              MT_TFTLCD_Showstring(50,90,"          ",COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);
+ 163   2              MT_TFTLCD_Showstring(50,90,"20  -  -  ",COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);  //1
+             -602
+ 164   2              TIME_Cnt=1000;//³õÊ¼»¯Ê±¼ä¼ÆÊýÆ÷£¬È·±£ÔÚÏÂÒ»´ÎÑ­»·ÖÐ¶ÁÈ¡Ê±¼ä¸üÐÂ
+ 165   2              Door_Cnt=0;
+ 166   2              DisPlayDelayTim=0;
+ 167   2          }
+ 168   1          // ÏÔÊ¾RFIDÊý¾Ý
+ 169   1          if(DisPlayDelayTim)
+ 170   1          {
+ 171   2              DisPlayDelayTim++;
+ 172   2              if(DisPlayDelayTim>=2000)
+ 173   2              {
+ 174   3                  DisPlayDelayTim=0;
+ 175   3                  MT_TFTLCD_Showstring(10,105,"                 ",WHITE,BLACK,16,0);
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 4   
+
+ 176   3                  MT_TFTLCD_Showstring(95,0,"                 ",WHITE,BLACK,16,0);
+ 177   3              }
+ 178   2          }
+ 179   1          if(MT_PWMB_GetRfidData(GetRfidDat))
+ 180   1          {
+ 181   2            userid = ParaCheckRfidData(GetRfidDat); // ¼ì²é¿¨ºÅ
+ 182   2            if(userid!=0xff)
+ 183   2            {
+ 184   3              DisPlayDelayTim=1;
+ 185   3              Door_Cnt=1;
+ 186   3              Hal_Lock_TriggerOpen();//¿ªËøº¯Êý
+ 187   3              App_History_Write(userid+1,OPER_TYPE_OPEN_RFID);//±£´æ¿ªËøµÄÐÅÏ¢
+ 188   3              HAL_WG_Receive_Show();//ÔÚÆÁÄ»ÉÏÏÔÊ¾½ÓÊÕµ½µÄÎ¤¸ùÊý¾Ý
+ 189   3              MT_Key_SetBacklighttime(MT_Key_Backlighttime);
+ 190   3              
+ 191   3              datDisplay[0] = '0' + (userid +1) / 10;
+ 192   3              datDisplay[1] = '0' + (userid +1) % 10;
+ 193   3              datDisplay[2] = 0;
+ 194   3              MT_TFTLCD_Showstring(10,105,"ID:",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+ 195   3              MT_TFTLCD_Showstring(35,105,datDisplay,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 196   3              App_Menu_DisPlayRFIDNum(60,105,GetRfidDat);//ÏÔÊ¾RFIDÊý¾Ý
+ 197   3              
+ 198   3              HAL_PWMA_main(HAL_horn_sound_Di);
+ 199   3              if(PARA_GET_PARA_SYSTEM_WG_SWITCH_STA == SWITCH_OPEN)
+ 200   3              {
+ 201   4                HAL_WG_DataReady(&GetRfidDat[1]);    //Î¤¸ù26Ö»ÐèÒª3¸ö×Ö½Ú£¨Å¼Ð£ÑéÎ´+24Î»Êý¾Ý+ÆæÐ£ÑéÎ»£©        
+             -     
+ 202   4              }
+ 203   3              if(PARA_GET_PARA_SYSTEM_RS485_SWITCH_STA==SWITCH_OPEN)
+ 204   3              {
+ 205   4                mt_modbus_UpdateDat(userid +1,OPER_TYPE_OPEN_RFID,GetRfidDat);
+ 206   4              }
+ 207   3            }
+ 208   2          }
+ 209   1          // ÃÅ×´Ì¬ÏÔÊ¾Ê±¼ä
+ 210   1          if(Door_Cnt)//
+ 211   1          {
+ 212   2              Door_Cnt++;
+ 213   2              if(Door_Cnt==10)
+ 214   2              {
+ 215   3                  MT_TFTLCD_DoorPic(0);
+ 216   3              }
+ 217   2              else if(Door_Cnt==500)
+ 218   2              {
+ 219   3                  MT_TFTLCD_DoorPic(1);
+ 220   3              }
+ 221   2              else if(Door_Cnt==2000)
+ 222   2              {
+ 223   3                  MT_TFTLCD_DoorPic(2);
+ 224   3                  Door_Cnt=0;
+ 225   3              }
+ 226   2          }
+ 227   1          //ÊµÊ±Ê±¼äÏÔÊ¾
+ 228   1          TIME_Cnt++;
+ 229   1          if(TIME_Cnt>=1000)
+ 230   1          {
+ 231   2            TIME_Cnt=0;
+ 232   2            MT_DS1302_Read_Time();//¶ÁÈ¡DS1302Ê±¼ä
+ 233   2          }
+ 234   1          if(BackUpDs1302Data.hour != TIME_Task.hour)
+ 235   1          {
+ 236   2              BackUpDs1302Data.hour = TIME_Task.hour;        
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 5   
+
+ 237   2              MT_DS1302_BCDTOString(BackUpDs1302Data.hour,datDisplay);
+ 238   2          MT_TFTLCD_Showstring (35,40,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,32,0);
+ 239   2          }
+ 240   1          if(BackUpDs1302Data.minute != TIME_Task.minute)
+ 241   1          {
+ 242   2              BackUpDs1302Data.minute = TIME_Task.minute;
+ 243   2              MT_TFTLCD_Showstring(65,37,":",COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,32,0);         
+ 244   2              MT_DS1302_BCDTOString(BackUpDs1302Data.minute,datDisplay);
+ 245   2              MT_TFTLCD_Showstring (80,40,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,32,0);
+ 246   2          }
+ 247   1          if(BackUpDs1302Data.second != TIME_Task.second)
+ 248   1          {
+ 249   2              BackUpDs1302Data.second = TIME_Task.second;        
+ 250   2              MT_DS1302_BCDTOString(BackUpDs1302Data.second,datDisplay);
+ 251   2              MT_TFTLCD_Showstring (135,68,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);
+ 252   2          }
+ 253   1          if(BackUpDs1302Data.year != TIME_Task.year)
+ 254   1          {       
+ 255   2              BackUpDs1302Data.year = TIME_Task.year;        //50  "2023-11-13"
+ 256   2              MT_DS1302_BCDTOString(BackUpDs1302Data.year,datDisplay);                
+ 257   2              MT_TFTLCD_Showstring(62,90,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);  //160
+             -2
+ 258   2          }             
+ 259   1          if(BackUpDs1302Data.month != TIME_Task.month)
+ 260   1          {    
+ 261   2              BackUpDs1302Data.month = TIME_Task.month;        
+ 262   2              MT_DS1302_BCDTOString(BackUpDs1302Data.month,datDisplay);                
+ 263   2              MT_TFTLCD_Showstring(80,90,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);  //
+ 264   2          }
+ 265   1          if(BackUpDs1302Data.day != TIME_Task.day)
+ 266   1          {     
+ 267   2              BackUpDs1302Data.day = TIME_Task.day;        
+ 268   2              MT_DS1302_BCDTOString(BackUpDs1302Data.day,datDisplay);                
+ 269   2              MT_TFTLCD_Showstring(98,90,datDisplay,COLOR_TFTLCD_FOREGROUND,COLOR_TFTLCD_BACKLIGHT,12,0);  //160
+             -2
+ 270   2          }
+ 271   1          //´¥Ãþ°´¼ü¼üÖµ¼ì²â
+ 272   1          AppMenuVair.TouchKeyNum=MT_GetKeyState();
+ 273   1          if(AppMenuVair.TouchKeyNum == 0xff)
+ 274   1            return;
+ 275   1          switch(AppMenuVair.TouchKeyNum)
+ 276   1          {
+ 277   2            case BackLight_Delete:
+ 278   2                 MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);//Çå³ýÆÁÄ»
+ 279   2                 App_Task_MenuToggle(MENU_KEY_OPENLOCK,TFTLCD_UI_INIT);
+ 280   2                 break;
+ 281   2            case BackLight_ENTER:
+ 282   2                 MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);//Çå³ýÆÁÄ»
+ 283   2                 App_Task_MenuToggle(MENU_PASSWORD,TFTLCD_UI_INIT);
+ 284   2                 break;
+ 285   2            case BackLight_Ring:
+ 286   2                 HAL_PWMA_main(HAL_horn_sound_DiDong);
+ 287   2                 break;
+ 288   2          }
+ 289   1      }
+ 290          /**
+ 291           * @brief  ÃÜÂë¿ªËø²Ëµ¥´¦Àíº¯Êý
+ 292           */
+ 293          static void App_Menu_Password(void)
+ 294          {
+ 295   1          static unsigned char xdata passWord[SYSTEM_PASSWORD_BIT];        // ÓÃÓÚ´æ´¢ÓÃ»§ÊäÈëµÄ4Î»ÃÜÂë
+ 296   1          static unsigned int xdata errorDisPlayDelayTim = 0;     // ´íÎóÌáÊ¾ÐÅÏ¢µÄÏÔÊ¾¼ÆÊ±Æ÷
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 6   
+
+ 297   1          static unsigned int xdata DisPlayDelayTim = 0;          // ÑéÖ¤³É¹¦ºó£¬½øÈëÖ÷²Ëµ¥Ç°µÄÑÓÊ±¼ÆÊ±Æ÷
+ 298   1          static unsigned int xdata DisPlayDelayTim_NoUser = 0;   //Ã»ÓÐÓÃ»§ÏÔÊ¾¼ÆÊ±Æ÷
+ 299   1          static unsigned char xdata adminNum;                    //¿ÉÓÃµÄ¿ÕÏÐIDºÅ
+ 300   1          unsigned char xdata GetRfidDat[4]; // ´æ´¢»ñÈ¡µ½µÄRFID¿¨ºÅ
+ 301   1          unsigned char datDisplay[3];       // ×Ö·û´®×ª»»»º³åÇø
+ 302   1          unsigned char userid;              // ´æ´¢²éÑ¯µ½µÄÓÃ»§ID
+ 303   1          unsigned char pdVal = 0;           // ´æ´¢µ±Ç°°´¼üµÄÊýÖµ
+ 304   1          unsigned char HaveAddAdiminNum=0;    //ÅÐ¶ÏÏµÍ³ÊÇ·ñÔö¼ÓÁË¹ÜÀíÔ±£¬Í³¼ÆÔö¼ÓµÄ¹ÜÀíÔ±µÄ¸öÊý
+ 305   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+ 306   1          {
+ 307   2              AppMenuVair.UiDisplay = TFTLCD_UI_NULL;//³õÊ¼»¯UIÎªÎÞË¢ÐÂ×´Ì¬
+ 308   2              HaveAddAdiminNum=ParaGetSumNumber(EN_PARATYPE_ADMINUSER,&adminNum);
+ 309   2              if(HaveAddAdiminNum == 0)
+ 310   2              {//ÏµÍ³Ã»ÓÐÌí¼Ó¹ÜÀíÔ±
+ 311   3                  DisPlayDelayTim_NoUser = 1000;
+ 312   3                  MT_TFTLCD_Showstring(40,10,"No User ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  // 
+ 313   3                  return;
+ 314   3              } 
+ 315   2              MT_TFTLCD_Showstring(30,36,"PASSWORD",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //  
+ 316   2              MT_TFTLCD_DrawLine(20,92,40,92,MENU_FONT_COLOR);
+ 317   2              MT_TFTLCD_DrawLine(55,92,75,92,MENU_FONT_COLOR);
+ 318   2              MT_TFTLCD_DrawLine(90,92,110,92,MENU_FONT_COLOR);
+ 319   2              MT_TFTLCD_DrawLine(125,92,145,92,MENU_FONT_COLOR);
+ 320   2              
+ 321   2              AppMenuVair.CursorPos = 0; // ¹â±êÎ»ÖÃ´Ó0¿ªÊ¼
+ 322   2              memset(passWord,0,sizeof(passWord));//³õÊ¼»¯ÃÜÂëÊý×éÎª0
+ 323   2              errorDisPlayDelayTim = 0;
+ 324   2              DisPlayDelayTim = 0;
+ 325   2          }
+ 326   1          //Ã»ÓÐÓÃ»§´¦Àí
+ 327   1          if(DisPlayDelayTim_NoUser)
+ 328   1          {
+ 329   2              DisPlayDelayTim_NoUser--;
+ 330   2              if(DisPlayDelayTim_NoUser == 0)
+ 331   2              {
+ 332   3                 App_Task_MenuToggle(MENU_AND_USER,TFTLCD_UI_INIT);
+ 333   3                 MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 334   3              }
+ 335   2              return;
+ 336   2          }
+ 337   1              // ´íÎóÐÅÏ¢ÏÔÊ¾´¦Àí (Èí¼þ¶¨Ê±Æ÷)
+ 338   1          if(errorDisPlayDelayTim)
+ 339   1          {
+ 340   2              errorDisPlayDelayTim--; // µ¹¼ÆÊ±
+ 341   2              if(errorDisPlayDelayTim == 0) // µ¹¼ÆÊ±½áÊø
+ 342   2              {
+ 343   3                  // Çå³ýÆÁÄ»ÉÏµÄ" error  "ÐÅÏ¢
+ 344   3                  MT_TFTLCD_Showstring(40,65,"        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 345   3              }
+ 346   2              return; // ÔÚÏÔÊ¾´íÎóÐÅÏ¢ÆÚ¼ä£¬ÔÝÍ£´¦ÀíÆäËûÊäÈë
+ 347   2          }
+ 348   1              // ÑéÖ¤³É¹¦ÑÓÊ±´¦Àí (Èí¼þ¶¨Ê±Æ÷)
+ 349   1          if(DisPlayDelayTim)
+ 350   1          {
+ 351   2              DisPlayDelayTim--; // µ¹¼ÆÊ±
+ 352   2              if(DisPlayDelayTim == 0) // µ¹¼ÆÊ±½áÊø
+ 353   2              {
+ 354   3                  MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 355   3                              // ÕýÊ½Ìø×ªµ½Ö÷²Ëµ¥
+ 356   3                  App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_INIT);
+ 357   3              }
+ 358   2              return; // ÔÚÑÓÊ±ÆÚ¼ä£¬ÔÝÍ£´¦ÀíÆäËûÊäÈë
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 7   
+
+ 359   2          }
+ 360   1               // --- 4. ¹ÜÀíÔ±RFID¿¨ÑéÖ¤ ---
+ 361   1          if(MT_PWMB_GetRfidData(GetRfidDat))
+ 362   1          {
+ 363   2               userid = ParaCheckRfidData(GetRfidDat); // ¼ì²é¿¨ºÅ
+ 364   2               if(userid < MAX_ADMIN_USER_NUMBER)
+ 365   2               {
+ 366   3                              // ÔÚÆÁÄ»ÉÏÏÔÊ¾¹ÜÀíÔ±IDºÍ¿¨ºÅ×÷ÎªÌáÊ¾
+ 367   3                 datDisplay[0] = '0' + (userid+1) / 10;
+ 368   3                 datDisplay[1] = '0' + (userid+1) % 10;
+ 369   3                 datDisplay[2] = 0;
+ 370   3                 MT_TFTLCD_BColorfill(0,64,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 371   3                 MT_TFTLCD_Showstring(25,80,"ADMIN_ID:",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 372   3                 MT_TFTLCD_Showstring(100,80,datDisplay,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 373   3                 DisPlayDelayTim = 2000; // Æô¶¯2ÃëÑÓÊ±£¬Ö®ºó½«×Ô¶¯Ìø×ªµ½Ö÷²Ëµ¥
+ 374   3               }
+ 375   2          }    
+ 376   1          AppMenuVair.TouchKeyNum=MT_GetKeyState();
+ 377   1          if(AppMenuVair.TouchKeyNum == 0xff)
+ 378   1          return;
+ 379   1          pdVal=0XFF;//³õÊ¼»¯°´¼üÖµÎª0xFF£¬±íÊ¾Î´°´ÏÂÈÎºÎ¼ü
+ 380   1          switch(AppMenuVair.TouchKeyNum)
+ 381   1          {
+ 382   2              case BackLight_NUM1:pdVal=1;
+ 383   2              break; 
+ 384   2              case BackLight_NUM2:pdVal=2;
+ 385   2              break; 
+ 386   2              case BackLight_NUM3:pdVal=3;
+ 387   2              break; 
+ 388   2              case BackLight_NUM4:pdVal=4;
+ 389   2              break; 
+ 390   2              case BackLight_NUM5:pdVal=5;
+ 391   2              break;  
+ 392   2              case BackLight_NUM6:pdVal=6;
+ 393   2              break; 
+ 394   2              case BackLight_NUM7:pdVal=7;
+ 395   2              break; 
+ 396   2              case BackLight_NUM8:pdVal=8;
+ 397   2              break; 
+ 398   2              case BackLight_NUM9:pdVal=9;
+ 399   2              break;
+ 400   2              case BackLight_NUM0:pdVal=0;
+ 401   2              break;
+ 402   2              case BackLight_Delete:
+ 403   2                  if(AppMenuVair.CursorPos > 0)
+ 404   2                  {
+ 405   3                      AppMenuVair.CursorPos--;
+ 406   3                      passWord[AppMenuVair.CursorPos] = 0xff;
+ 407   3                      MT_TFTLCD_Showstring(24+(35*AppMenuVair.CursorPos),65," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,2
+             -4,0);
+ 408   3                  }
+ 409   2              break;
+ 410   2              case BackLight_BACK:
+ 411   2                  MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 412   2                  App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);
+ 413   2                  break;
+ 414   2              case BackLight_ENTER:
+ 415   2                  if((AppMenuVair.CursorPos == SYSTEM_PASSWORD_BIT)&&(ParaCheckPassWordData(passWord))!=0xff)
+ 416   2                  {
+ 417   3                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 418   3                      App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_INIT);
+ 419   3                  }
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 8   
+
+ 420   2                  else
+ 421   2                  {
+ 422   3                      MT_TFTLCD_Showstring(24,65,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 423   3                      MT_TFTLCD_Showstring(40,65," error  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 424   3                      errorDisPlayDelayTim = 2000;
+ 425   3                      AppMenuVair.CursorPos = 0;
+ 426   3                  }
+ 427   2                  break;
+ 428   2          }
+ 429   1          if(pdVal<10)
+ 430   1          {
+ 431   2              if(AppMenuVair.CursorPos < SYSTEM_PASSWORD_BIT)
+ 432   2              {
+ 433   3                  passWord[AppMenuVair.CursorPos] = pdVal;
+ 434   3                  MT_TFTLCD_Showstring(24+(35*AppMenuVair.CursorPos),65,"*",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIG
+             -HT,24,0);
+ 435   3                  AppMenuVair.CursorPos++;
+ 436   3              }
+ 437   2          }
+ 438   1      }
+ 439          /**160 80
+ 440           * @brief  °´¼ü¿ªËø²Ëµ¥´¦Àíº¯Êý
+ 441           */
+ 442          static void App_Menu_KeyOpenLock(void)
+ 443          {
+ 444   1          static unsigned char xdata passWord[SYSTEM_PASSWORD_BIT];        // ÓÃÓÚ´æ´¢ÓÃ»§ÊäÈëµÄ4Î»ÃÜÂë
+ 445   1          static unsigned int xdata errorDisPlayDelayTim = 0;     // ´íÎóÌáÊ¾ÐÅÏ¢µÄÏÔÊ¾¼ÆÊ±Æ÷
+ 446   1          static unsigned int xdata DisPlayDelayTim = 0;          // ÑéÖ¤³É¹¦ºó£¬½øÈëÖ÷²Ëµ¥Ç°µÄÑÓÊ±¼ÆÊ±Æ÷
+ 447   1          unsigned char xdata GetRfidDat[4]; // ´æ´¢»ñÈ¡µ½µÄRFID¿¨ºÅ
+ 448   1      //    unsigned char datDisplay[3];       // ×Ö·û´®×ª»»»º³åÇø
+ 449   1          unsigned char userid,userID;              // ´æ´¢²éÑ¯µ½µÄÓÃ»§ID
+ 450   1          unsigned char pdVal = 0;           // ´æ´¢µ±Ç°°´¼üµÄÊýÖµ
+ 451   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+ 452   1          {
+ 453   2              AppMenuVair.UiDisplay = TFTLCD_UI_NULL;//³õÊ¼»¯UIÎªÎÞË¢ÐÂ×´Ì¬
+ 454   2              MT_TFTLCD_Showstring(30,36,"PASSWORD",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  // 
+ 455   2              MT_TFTLCD_DrawLine(20,92,40,92,MENU_FONT_COLOR);
+ 456   2              MT_TFTLCD_DrawLine(55,92,75,92,MENU_FONT_COLOR);
+ 457   2              MT_TFTLCD_DrawLine(90,92,110,92,MENU_FONT_COLOR);
+ 458   2              MT_TFTLCD_DrawLine(125,92,145,92,MENU_FONT_COLOR);
+ 459   2              
+ 460   2              AppMenuVair.CursorPos = 0; // ¹â±êÎ»ÖÃ´Ó0¿ªÊ¼
+ 461   2              memset(passWord,0,sizeof(passWord));//³õÊ¼»¯ÃÜÂëÊý×éÎª0
+ 462   2              errorDisPlayDelayTim = 0;
+ 463   2              DisPlayDelayTim = 0;
+ 464   2          }
+ 465   1                  // ´íÎóÐÅÏ¢ÏÔÊ¾´¦Àí (Èí¼þ¶¨Ê±Æ÷)
+ 466   1          if(errorDisPlayDelayTim)
+ 467   1          {
+ 468   2              errorDisPlayDelayTim--; // µ¹¼ÆÊ±
+ 469   2              if(errorDisPlayDelayTim == 0) // µ¹¼ÆÊ±½áÊø
+ 470   2              {
+ 471   3                  // Çå³ýÆÁÄ»ÉÏµÄ" error  "ÐÅÏ¢
+ 472   3                  MT_TFTLCD_Showstring(40,65,"        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 473   3              }
+ 474   2              return; // ÔÚÏÔÊ¾´íÎóÐÅÏ¢ÆÚ¼ä£¬ÔÝÍ£´¦ÀíÆäËûÊäÈë
+ 475   2          }
+ 476   1              // ÑéÖ¤³É¹¦ÑÓÊ±´¦Àí (Èí¼þ¶¨Ê±Æ÷)
+ 477   1          if(DisPlayDelayTim)
+ 478   1          {
+ 479   2              DisPlayDelayTim--; // µ¹¼ÆÊ±
+ 480   2              if(DisPlayDelayTim == 0) // µ¹¼ÆÊ±½áÊø
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 9   
+
+ 481   2              {
+ 482   3                  MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 483   3                              // ÕýÊ½Ìø×ªµ½Ö÷²Ëµ¥
+ 484   3                  App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);
+ 485   3              }
+ 486   2              return; // ÔÚÑÓÊ±ÆÚ¼ä£¬ÔÝÍ£´¦ÀíÆäËûÊäÈë
+ 487   2          }
+ 488   1               // --- 4. ¹ÜÀíÔ±RFID¿¨ÑéÖ¤ ---
+ 489   1          if(MT_PWMB_GetRfidData(GetRfidDat))
+ 490   1          {
+ 491   2            userid = ParaCheckRfidData(GetRfidDat); // ¼ì²éRFID¿¨ºÅÊÇ·ñÒÑÂ¼Èë
+ 492   2            if(userid!=0xff)
+ 493   2            {
+ 494   3              App_History_Write(userid+1,OPER_TYPE_OPEN_RFID);//±£´æ¿ªËøµÄÐÅÏ¢
+ 495   3              Hal_Lock_TriggerOpen();          
+ 496   3      //        App_Menu_DisPlayRFIDNum(70,110,GetRfidDat);
+ 497   3              DisPlayDelayTim = 1000; // Æô¶¯2ÃëÑÓÊ±£¬Ö®ºó½«×Ô¶¯Ìø×ªµ½Ö÷²Ëµ¥
+ 498   3            }
+ 499   2          }    
+ 500   1          AppMenuVair.TouchKeyNum=MT_GetKeyState();
+ 501   1          if(AppMenuVair.TouchKeyNum == 0xff)
+ 502   1          return;
+ 503   1          pdVal=0XFF;//³õÊ¼»¯°´¼üÖµÎª0xFF£¬±íÊ¾Î´°´ÏÂÈÎºÎ¼ü
+ 504   1          switch(AppMenuVair.TouchKeyNum)
+ 505   1          {
+ 506   2              case BackLight_NUM1:pdVal=1;
+ 507   2              break; 
+ 508   2              case BackLight_NUM2:pdVal=2;
+ 509   2              break; 
+ 510   2              case BackLight_NUM3:pdVal=3;
+ 511   2              break; 
+ 512   2              case BackLight_NUM4:pdVal=4;
+ 513   2              break; 
+ 514   2              case BackLight_NUM5:pdVal=5;
+ 515   2              break;  
+ 516   2              case BackLight_NUM6:pdVal=6;
+ 517   2              break; 
+ 518   2              case BackLight_NUM7:pdVal=7;
+ 519   2              break; 
+ 520   2              case BackLight_NUM8:pdVal=8;
+ 521   2              break; 
+ 522   2              case BackLight_NUM9:pdVal=9;
+ 523   2              break; 
+ 524   2              case BackLight_NUM0:pdVal=0;
+ 525   2              break; 
+ 526   2              case BackLight_Delete:
+ 527   2                  if(AppMenuVair.CursorPos > 0)
+ 528   2                  {
+ 529   3                    AppMenuVair.CursorPos--;
+ 530   3                    passWord[AppMenuVair.CursorPos] = 0xff;
+ 531   3                    MT_TFTLCD_Showstring(24+(35*AppMenuVair.CursorPos),65," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24
+             -,0);
+ 532   3                  }
+ 533   2                  break;
+ 534   2              case BackLight_BACK:
+ 535   2                  MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 536   2                  App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);
+ 537   2                  break;
+ 538   2              case BackLight_ENTER:
+ 539   2                  userID=ParaCheckPassWordData(passWord);
+ 540   2                  if((AppMenuVair.CursorPos == SYSTEM_PASSWORD_BIT)&&(userID!=0xff))
+ 541   2                  {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 10  
+
+ 542   3                    App_History_Write(userID+1,OPER_TYPE_OPEN_PASSWORD);//±£´æ¿ªËøµÄÐÅÏ¢
+ 543   3                    MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 544   3                    App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);
+ 545   3                    Hal_Lock_TriggerOpen();
+ 546   3                  }
+ 547   2                  else
+ 548   2                  {
+ 549   3                    MT_TFTLCD_Showstring(24,65,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 550   3                    MT_TFTLCD_Showstring(40,65," error  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 551   3                    errorDisPlayDelayTim = 2000;
+ 552   3                    AppMenuVair.CursorPos = 0;
+ 553   3                  }
+ 554   2                  break;
+ 555   2          }
+ 556   1          if(pdVal<10)
+ 557   1          {
+ 558   2              if(AppMenuVair.CursorPos < SYSTEM_PASSWORD_BIT)
+ 559   2              {
+ 560   3                  passWord[AppMenuVair.CursorPos] = pdVal;
+ 561   3                  MT_TFTLCD_Showstring(24+(35*AppMenuVair.CursorPos),65,"*",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIG
+             -HT,24,0);
+ 562   3                  AppMenuVair.CursorPos++;
+ 563   3              }
+ 564   2          }
+ 565   1      }
+ 566          
+ 567          /**
+ 568           * @brief  Ö÷²Ëµ¥´¦Àíº¯Êý
+ 569           */
+ 570          static void App_Menu_MainMenu(void)
+ 571          {
+ 572   1          unsigned char pdVal = 0; // ÁÙÊ±±äÁ¿£¬ÓÃÓÚ´æ´¢°´¼ü×ª»»ºóµÄ¹¦ÄÜÂë 
+ 573   1          static unsigned char xdata backupCursorPos = 0;// Ê¹ÓÃ¾²Ì¬±äÁ¿±¸·Ý¹â±êÎ»ÖÃ£¬ÒÔ±ã´Ó×Ó²Ëµ¥·µ»ØÊ±»Ö¸´
+ 574   1          // ´Ë´¦½«Ìí¼ÓÖ÷²Ëµ¥µÄÏÔÊ¾ÓëÑ¡ÔñÂß¼­
+ 575   1          if((AppMenuVair.UiDisplay == TFTLCD_UI_INIT) || (AppMenuVair.UiDisplay == TFTLCD_UI_RECORER))
+ 576   1              {
+ 577   2                  // Èç¹ûÊÇ¡°ÍêÈ«ÖØ»æ¡±£¬Ôò½«¹â±êÎ»ÖÃÖØÖÃÎª0
+ 578   2                if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+ 579   2                {
+ 580   3                  backupCursorPos = 0;
+ 581   3                }
+ 582   2                 AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+ 583   2                 AppMenuVair.CursorPos=backupCursorPos;
+ 584   2                      // »æÖÆ²Ëµ¥±êÌâºÍËùÓÐ²Ëµ¥Ïî
+ 585   2                 MT_TFTLCD_Showstring(28,0, "   MENU   ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 586   2                 MT_TFTLCD_Showstring(10,24,"  1.Date&Time     ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 587   2                 MT_TFTLCD_Showstring(10,44,"  2.Add User      ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 588   2                 MT_TFTLCD_Showstring(10,64,"  3.User Manage   ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 589   2                 MT_TFTLCD_Showstring(10,84,"  4.Setting       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 590   2                 MT_TFTLCD_Showstring(10,104,"  5.History     ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 591   2                 
+ 592   2                      // ÔÚµ±Ç°¹â±êÎ»ÖÃ»æÖÆ ">" ·ûºÅ
+ 593   2                 MT_TFTLCD_Showstring(10,(24+AppMenuVair.CursorPos*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16
+             -,0);
+ 594   2              }
+ 595   1              
+ 596   1              AppMenuVair.TouchKeyNum = MT_GetKeyState();
+ 597   1              if(AppMenuVair.TouchKeyNum == 0xff)//Èç¹ûÃ»ÓÐ°´¼ü°´ÏÂ
+ 598   1              return;
+ 599   1              pdVal=0XFF;//³õÊ¼»¯°´¼üÖµÎª0xFF£¬±íÊ¾Î´°´ÏÂÈÎºÎ¼ü
+ 600   1              switch(AppMenuVair.TouchKeyNum)
+ 601   1              {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 11  
+
+ 602   2                  case BackLight_UP:
+ 603   2                  {
+ 604   3                      pdVal=11;
+ 605   3                  }
+ 606   2                  break; 
+ 607   2                  case BackLight_DOWN:
+ 608   2                  {
+ 609   3                      pdVal=12;
+ 610   3                  }
+ 611   2                  break; 
+ 612   2                  case BackLight_BACK:
+ 613   2                  {
+ 614   3                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 615   3                      App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);        
+ 616   3                  }
+ 617   2                  break;
+ 618   2                  case BackLight_ENTER:
+ 619   2                  {
+ 620   3                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 621   3                      backupCursorPos = AppMenuVair.CursorPos; // ÔÚÌø×ªÇ°£¬±¸·Ýµ±Ç°¹â±êÎ»ÖÃ
+ 622   3                      // ÀûÓÃÃ¶¾ÙÖµµÄÁ¬ÐøÐÔ£¬Í¨¹ý¹â±êÎ»ÖÃµÄÆ«ÒÆÁ¿Ö±½ÓÌø×ªµ½¶ÔÓ¦µÄ²Ëµ¥×´Ì¬
+ 623   3                      App_Task_MenuToggle(MENU_SET_TIME + AppMenuVair.CursorPos, TFTLCD_UI_INIT);       
+ 624   3                  }
+ 625   2                  break;                           
+ 626   2              }
+ 627   1                      // --- 3. ¹â±êÒÆ¶¯Âß¼­ ---
+ 628   1              if(pdVal == 11) // Èç¹ûÊÇ¡°ÏòÉÏ¡±
+ 629   1              {
+ 630   2                  if(AppMenuVair.CursorPos == 0) // Èç¹û¹â±êÔÚµÚÒ»Ïî
+ 631   2                  {
+ 632   3                      AppMenuVair.CursorPos = 5; // Ñ­»·µ½×îºóÒ»Ïî
+ 633   3                  }
+ 634   2                  AppMenuVair.CursorPos--; // ¹â±êÉÏÒÆ
+ 635   2              }
+ 636   1              if(pdVal == 12) // Èç¹ûÊÇ¡°ÏòÏÂ¡±
+ 637   1              {
+ 638   2                  AppMenuVair.CursorPos++; // ¹â±êÏÂÒÆ
+ 639   2                  if(AppMenuVair.CursorPos == 5) // Èç¹û¹â±ê³¬¹ý×îºóÒ»Ïî
+ 640   2                  {
+ 641   3                      AppMenuVair.CursorPos = 0; // Ñ­»·µ½µÚÒ»Ïî
+ 642   3                  }
+ 643   2              }
+ 644   1                      // --- 4. ¹â±êÖØ»æ ---
+ 645   1              if(pdVal != 0xff) // Èç¹û°´ÏÂÁËÓÐÐ§µÄ¹¦ÄÜ¼ü (ÉÏ/ÏÂ)
+ 646   1              {
+ 647   2                // ÏÈÓÃ¿Õ¸ñÇå³ýËùÓÐ¿ÉÄÜÎ»ÖÃµÄ¾É¹â±ê
+ 648   2                MT_TFTLCD_Showstring(10,24,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 649   2                MT_TFTLCD_Showstring(10,44,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 650   2                MT_TFTLCD_Showstring(10,64,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 651   2                MT_TFTLCD_Showstring(10,84,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 652   2                MT_TFTLCD_Showstring(10,104,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 653   2      
+ 654   2                // ÔÚÐÂµÄ¹â±êÎ»ÖÃÖØÐÂ»æÖÆ ">" ·ûºÅ
+ 655   2                MT_TFTLCD_Showstring(10,(24+AppMenuVair.CursorPos*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGH
+             -T,16,0);
+ 656   2              }
+ 657   1      }
+ 658          // º¯Êý:  static void App_Menu_DateTime_Display(unsigned char Cursor, unsigned char state,str_SystemDispla
+             -yer timeBuffer)
+ 659          // ÃèÊö:  ÊµÏÖÊ±¼äÉÁË¸º¯Êý
+ 660          // ²ÎÊý1: ÎÞ
+ 661          // ²ÎÊý2: ÎÞ
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 12  
+
+ 662          // ·µ»Ø:  ÎÞ
+ 663          //========================================================================
+ 664          static void App_Menu_DateTime_Display(unsigned char Cursor, unsigned char state,str_SystemDisplayer timeBu
+             -ffer)
+ 665          {
+ 666   1              //=========================ÏÔÊ¾ÈÕÆÚ
+ 667   1              AppMenuVair.DisplayDat[0] = '0' + timeBuffer.year_Hbit;
+ 668   1              AppMenuVair.DisplayDat[1] = '0' + timeBuffer.year_Lbit;                
+ 669   1              AppMenuVair.DisplayDat[2] = '-';                        
+ 670   1              AppMenuVair.DisplayDat[3] = '0' + timeBuffer.month_Hbit;
+ 671   1              AppMenuVair.DisplayDat[4] = '0' + timeBuffer.month_Lbit;                
+ 672   1              AppMenuVair.DisplayDat[5] = '-';                
+ 673   1              AppMenuVair.DisplayDat[6] = '0' + timeBuffer.day_Hbit;
+ 674   1              AppMenuVair.DisplayDat[7] = '0' + timeBuffer.day_Lbit;
+ 675   1              AppMenuVair.DisplayDat[8] = 0;
+ 676   1              if(state == 0)
+ 677   1              {
+ 678   2                      switch(Cursor)
+ 679   2                      {
+ 680   3                              case 1:
+ 681   3                                      AppMenuVair.DisplayDat[0] = ' ';        
+ 682   3                              break;
+ 683   3                              case 2:
+ 684   3                                      AppMenuVair.DisplayDat[1] = ' ';                
+ 685   3                              break;
+ 686   3                              case 3:
+ 687   3                                      AppMenuVair.DisplayDat[3] = ' ';                                        
+ 688   3                              break;
+ 689   3                              case 4:
+ 690   3                                      AppMenuVair.DisplayDat[4] = ' ';                                        
+ 691   3                              break;
+ 692   3                              case 5:
+ 693   3                                      AppMenuVair.DisplayDat[6] = ' ';                                        
+ 694   3                              break;
+ 695   3                              case 6:
+ 696   3                                      AppMenuVair.DisplayDat[7] = ' ';                                        
+ 697   3                              break;        
+ 698   3                      }        
+ 699   2              }
+ 700   1              MT_TFTLCD_Showstring(58,44,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0); 
+ 701   1              //=========================ÏÔÊ¾Ê±¼ä
+ 702   1              AppMenuVair.DisplayDat[0] = '0' + timeBuffer.hour_Hbit;
+ 703   1              AppMenuVair.DisplayDat[1] = '0' + timeBuffer.hour_Lbit;                
+ 704   1              AppMenuVair.DisplayDat[2] = ':';                
+ 705   1              AppMenuVair.DisplayDat[3] = '0' + timeBuffer.minute_Hbit;
+ 706   1              AppMenuVair.DisplayDat[4] = '0' + timeBuffer.minute_Lbit;
+ 707   1              AppMenuVair.DisplayDat[5] = ':';                
+ 708   1              AppMenuVair.DisplayDat[6] = '0' + timeBuffer.sec_Hbit;
+ 709   1              AppMenuVair.DisplayDat[7] = '0' + timeBuffer.sec_Lbit;                
+ 710   1              AppMenuVair.DisplayDat[8] = 0;        
+ 711   1              
+ 712   1              if(state == 0)
+ 713   1              {
+ 714   2                switch(Cursor)
+ 715   2                {
+ 716   3                  case 7:
+ 717   3                          AppMenuVair.DisplayDat[0] = ' ';        
+ 718   3                  break;
+ 719   3                  case 8:
+ 720   3                          AppMenuVair.DisplayDat[1] = ' ';                
+ 721   3                  break;
+ 722   3                  case 9:
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 13  
+
+ 723   3                          AppMenuVair.DisplayDat[3] = ' ';                                        
+ 724   3                  break;
+ 725   3                  case 10:
+ 726   3                          AppMenuVair.DisplayDat[4] = ' ';                                        
+ 727   3                  break;
+ 728   3                  case 11:
+ 729   3                          AppMenuVair.DisplayDat[6] = ' ';                                        
+ 730   3                  break;
+ 731   3                  case 12:
+ 732   3                          AppMenuVair.DisplayDat[7] = ' ';                                        
+ 733   3                  break;        
+ 734   3                }        
+ 735   2              }
+ 736   1              MT_TFTLCD_Showstring(58,84,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+ 737   1              //Çå³ýÊý×ÖÏÂµÄ°×Ïß
+ 738   1              MT_TFTLCD_DrawLine(58,60,65,60,COLOR_TFTLCD_BACKLIGHT);
+ 739   1              MT_TFTLCD_DrawLine(67,60,74,60,COLOR_TFTLCD_BACKLIGHT);
+ 740   1              MT_TFTLCD_DrawLine(81,60,88,60,COLOR_TFTLCD_BACKLIGHT);
+ 741   1              MT_TFTLCD_DrawLine(90,60,97,60,COLOR_TFTLCD_BACKLIGHT);
+ 742   1              MT_TFTLCD_DrawLine(105,60,112,60,COLOR_TFTLCD_BACKLIGHT);
+ 743   1              MT_TFTLCD_DrawLine(114,60,121,60,COLOR_TFTLCD_BACKLIGHT);                
+ 744   1              MT_TFTLCD_DrawLine(58,100,65,100,COLOR_TFTLCD_BACKLIGHT);
+ 745   1              MT_TFTLCD_DrawLine(67,100,74,100,COLOR_TFTLCD_BACKLIGHT);
+ 746   1              MT_TFTLCD_DrawLine(81,100,88,100,COLOR_TFTLCD_BACKLIGHT);
+ 747   1              MT_TFTLCD_DrawLine(90,100,97,100,COLOR_TFTLCD_BACKLIGHT);
+ 748   1              MT_TFTLCD_DrawLine(105,100,112,100,COLOR_TFTLCD_BACKLIGHT);
+ 749   1              MT_TFTLCD_DrawLine(114,100,121,100,COLOR_TFTLCD_BACKLIGHT);        
+ 750   1              if(state)        
+ 751   1              {
+ 752   2                switch(AppMenuVair.CursorPos)
+ 753   2                {
+ 754   3                  case 1:
+ 755   3                          MT_TFTLCD_DrawLine(58,60,65,60,MENU_FONT_COLOR);                                                
+             -        
+ 756   3                  break;
+ 757   3                  case 2:
+ 758   3                          MT_TFTLCD_DrawLine(67,60,74,60,MENU_FONT_COLOR);                                        
+ 759   3                  break;                        
+ 760   3                  case 3:
+ 761   3                          MT_TFTLCD_DrawLine(81,60,88,60,MENU_FONT_COLOR);                                
+ 762   3                  break;                        
+ 763   3                  case 4:
+ 764   3                          MT_TFTLCD_DrawLine(90,60,97,60,MENU_FONT_COLOR);                                                
+             -        
+ 765   3                  break;
+ 766   3                  case 5:
+ 767   3                          MT_TFTLCD_DrawLine(105,60,112,60,MENU_FONT_COLOR);                        
+ 768   3                  break;                        
+ 769   3                  case 6:
+ 770   3                          MT_TFTLCD_DrawLine(114,60,121,60,MENU_FONT_COLOR);                                              
+             -                  
+ 771   3                  break;        
+ 772   3                  case 7:
+ 773   3                          MT_TFTLCD_DrawLine(58,100,65,100,MENU_FONT_COLOR);                        
+ 774   3                  break;
+ 775   3                  case 8:
+ 776   3                          MT_TFTLCD_DrawLine(67,100,74,100,MENU_FONT_COLOR);                        
+ 777   3                  break;                        
+ 778   3                  case 9:        
+ 779   3                          MT_TFTLCD_DrawLine(81,100,88,100,MENU_FONT_COLOR);                        
+ 780   3                  break;                        
+ 781   3                  case 10:
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 14  
+
+ 782   3                          MT_TFTLCD_DrawLine(90,100,97,100,MENU_FONT_COLOR);                                
+ 783   3                  break;
+ 784   3                  case 11:                        
+ 785   3                          MT_TFTLCD_DrawLine(105,100,112,100,MENU_FONT_COLOR);                                
+ 786   3                  break;                        
+ 787   3                  case 12:
+ 788   3                          MT_TFTLCD_DrawLine(114,100,121,100,MENU_FONT_COLOR);                                        
+ 789   3                  break;        
+ 790   3                }                        
+ 791   2            }
+ 792   1      }
+ 793          // ¼ì²âÓÃ»§ÊäÈëµÄÊ±¼äÊý¾ÝÊÇ·ñÓÐÐ§
+ 794          static unsigned char App_Menu_DateTime_DetectPutInData(str_SystemDisplayer timeBuffer)
+ 795          {
+ 796   1              unsigned char dat;
+ 797   1              dat = timeBuffer.month_Lbit + timeBuffer.month_Hbit *10;        
+ 798   1              if((dat > 0) && (dat < 13))
+ 799   1              { ///ÔÂ·ÝÓÐÐ§È¡Öµ1-12                
+ 800   2              }
+ 801   1              else
+ 802   1               return 0;                                        
+ 803   1      
+ 804   1              dat = timeBuffer.day_Lbit + timeBuffer.day_Hbit *10;        
+ 805   1              if((dat > 0) && (dat < 32))
+ 806   1              { ///ÈÕ1-31          ´Ë´¦»¹¿ÉÒÔ½øÒ»²½ÓÅ»¯£»
+ 807   2              }
+ 808   1              else
+ 809   1               return 0;        
+ 810   1      
+ 811   1              dat = timeBuffer.hour_Lbit + timeBuffer.hour_Hbit *10;        
+ 812   1              if(dat < 24)
+ 813   1              { ///Ð¡Ê± 0-23
+ 814   2              }
+ 815   1              else
+ 816   1               return 0;
+ 817   1              dat = timeBuffer.minute_Lbit + timeBuffer.minute_Hbit *10;        
+ 818   1              if(dat < 60)
+ 819   1              { ///·ÖÖÓ 0-59
+ 820   2              }
+ 821   1              else
+ 822   1               return 0;         
+ 823   1              dat = timeBuffer.sec_Lbit + timeBuffer.sec_Hbit *10;        
+ 824   1              if(dat < 60)
+ 825   1              { ///Ãë 0-59
+ 826   2              }
+ 827   1              else
+ 828   1               return 0;        
+ 829   1      
+ 830   1              return 1;                                         
+ 831   1      }
+ 832          /**
+ 833           * @brief  Ê±¼äÈÕÆÚÉèÖÃ²Ëµ¥´¦Àíº¯Êý
+ 834           */
+ 835          static void App_Menu_DateTimeSeting(void)
+ 836          {
+ 837   1          static str_SystemDisplayer xdata timeBuffer; // ´æ´¢ÓÃ»§ÕýÔÚ±à¼­µÄÊ®½øÖÆÊ±¼ä(BCDÂë×ª»»ÎªÊ®½øÖÆ)
+ 838   1          static unsigned int xdata BlinkTimer = 0;    // ¹â±êÉÁË¸¼ÆÊ±Æ÷
+ 839   1          static unsigned char xdata BlinkState = 0;   // ¹â±êÉÁË¸×´Ì¬ (0:Òþ²Ø, 1:ÏÔÊ¾)
+ 840   1      
+ 841   1              // --- ÁÙÊ±±äÁ¿¶¨Òå ---
+ 842   1          unsigned char xdata pdVal = 0;           // ´æ´¢°´¼ü×ª»»ºóµÄÊýÖµ
+ 843   1      //    str_Mt_Ds1302Data xdata ds1302_data;   // ÓÃÓÚ´æ´¢´ýÐ´ÈëDS1302µÄBCDÂëÊý¾Ý
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 15  
+
+ 844   1          unsigned char *pdat;               // ÓÃÓÚÍ¨¹ýÖ¸Õë²Ù×÷timeBufferµÄÖ¸Õë±äÁ¿
+ 845   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+ 846   1              {
+ 847   2                  AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+ 848   2                      // »æÖÆ²Ëµ¥±êÌâºÍËùÓÐ²Ëµ¥Ïî
+ 849   2                  MT_TFTLCD_Showstring(30,0,"Date&Time",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 850   2                  MT_TFTLCD_Showstring(10,44,"Date:        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+ 851   2                  MT_TFTLCD_Showstring(10,84,"Time:        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+ 852   2      
+ 853   2                   // ´ÓDS1302¶ÁÈ¡µ±Ç°Ê±¼ä
+ 854   2                  MT_DS1302_Read_Time();
+ 855   2                   // ½«¶ÁÈ¡µ½µÄBCDÂëÊ±¼ä×ª»»ÎªÊ®½øÖÆ£¬²¢²ð·Ö´æÈëtimeBuffer
+ 856   2                  timeBuffer.year_Hbit   = (TIME_Task.year >> 4) & 0x0f;
+ 857   2                  timeBuffer.year_Lbit   = TIME_Task.year & 0x0f;
+ 858   2                  timeBuffer.month_Hbit  = (TIME_Task.month >> 4) & 0x0f;
+ 859   2                  timeBuffer.month_Lbit  = TIME_Task.month & 0x0f;
+ 860   2                  timeBuffer.day_Hbit    = (TIME_Task.day >> 4) & 0x0f;
+ 861   2                  timeBuffer.day_Lbit    = TIME_Task.day & 0x0f;
+ 862   2                  timeBuffer.hour_Hbit   = (TIME_Task.hour >> 4) & 0x0f;
+ 863   2                  timeBuffer.hour_Lbit   = TIME_Task.hour & 0x0f;
+ 864   2                  timeBuffer.minute_Hbit = (TIME_Task.minute >> 4) & 0x0f;
+ 865   2                  timeBuffer.minute_Lbit = TIME_Task.minute & 0x0f;
+ 866   2                  timeBuffer.sec_Hbit    = (TIME_Task.second >> 4) & 0x0f;
+ 867   2                  timeBuffer.sec_Lbit    = TIME_Task.second & 0x0f;
+ 868   2      
+ 869   2                   // ³õÊ¼»¯¹â±êºÍÉÁË¸×´Ì¬
+ 870   2                  AppMenuVair.CursorPos = 1; // ¹â±ê´ÓµÚÒ»¸öÎ»ÖÃ¿ªÊ¼
+ 871   2                  BlinkTimer = 1000;
+ 872   2                  BlinkState = 1;
+ 873   2                  AppMenuVair.DisplayTim = 0; // Çå³ý¡°ÉèÖÃ³É¹¦¡±µÄÑÓÊ±¼ÆÊ±Æ÷
+ 874   2              }
+ 875   1              // --- 6. ÉèÖÃ³É¹¦ºó£¬ÑÓÊ±·µ»ØÖ÷½çÃæ ---
+ 876   1              if(AppMenuVair.DisplayTim)
+ 877   1              {
+ 878   2                  AppMenuVair.DisplayTim--; // µ¹¼ÆÊ±
+ 879   2                  if(AppMenuVair.DisplayTim == 0) // µ¹¼ÆÊ±½áÊø
+ 880   2                  {
+ 881   3                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 882   3                     // ·µ»ØÖ÷²Ëµ¥£¬²¢´«µÝ¡°»Ö¸´¡±±êÖ¾£¬ÒÔ±ãÖ÷²Ëµ¥¼ÇÒäÉÏ´ÎµÄ¹â±êÎ»ÖÃ
+ 883   3                     App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);
+ 884   3                  }
+ 885   2                  return; // ÔÚÑÓÊ±ÆÚ¼ä£¬²»´¦ÀíÈÎºÎÆäËû²Ù×÷
+ 886   2              }
+ 887   1              // --- 2. ¹â±êÉÁË¸Âß¼­ (Èí¼þ¶¨Ê±Æ÷) ---
+ 888   1              BlinkTimer++;
+ 889   1              if(BlinkTimer > 500) // ´óÔ¼Ã¿400ms·­×ªÒ»´Î×´Ì¬
+ 890   1              {
+ 891   2                      BlinkTimer = 0;
+ 892   2                      BlinkState = !BlinkState; // ·­×ªÏÔÊ¾/Òþ²Ø×´Ì¬
+ 893   2                      // µ÷ÓÃÏÔÊ¾º¯Êý£¬Ö»¸üÐÂ¹â±êµÄÉÁË¸Ð§¹û
+ 894   2                      App_Menu_DateTime_Display(AppMenuVair.CursorPos, BlinkState, timeBuffer);
+ 895   2              } 
+ 896   1      
+ 897   1              AppMenuVair.TouchKeyNum = MT_GetKeyState();
+ 898   1              if(AppMenuVair.TouchKeyNum == 0xff) return; // ÎÞ°´¼üÔò·µ»Ø
+ 899   1              pdVal = 0xff; // ³õÊ¼»¯ÎªÎÞÐ§Öµ
+ 900   1              switch(AppMenuVair.TouchKeyNum)
+ 901   1              {
+ 902   2                  case BackLight_UP: pdVal = 11; break; // ÉèÖÃÎª¡°ÏòÉÏ¡±¹¦ÄÜÂë
+ 903   2                  case BackLight_DOWN: pdVal = 12; break; // ÉèÖÃÎª¡°ÏòÏÂ¡±¹¦ÄÜÂë
+ 904   2                  case BackLight_BACK:
+ 905   2                  {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 16  
+
+ 906   3                      MT_TFTLCD_Showstring(28,0,  "       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+ 907   3                      App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);        
+ 908   3                  }
+ 909   2                  break;
+ 910   2                  case BackLight_ENTER: // È·ÈÏ¼ü£¬ÓÃÓÚ±£´æ
+ 911   2                              if(App_Menu_DateTime_DetectPutInData(timeBuffer) == 1) // µ÷ÓÃº¯Êý¼ì²éÊý¾ÝºÏ·¨ÐÔ
+ 912   2                              {// Êý¾ÝºÏ·¨
+ 913   3                                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 914   3                                      MT_TFTLCD_Showstring(10,44," Set Successful ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);
+ 915   3                                      MT_TFTLCD_Showstring(10,84,"                ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);
+ 916   3                                      // ½«Ê®½øÖÆµÄtimeBufferÊý¾ÝºÏ²¢ÎªBCDÂë
+ 917   3                                      TIME_Task.year   = timeBuffer.year_Lbit   + (timeBuffer.year_Hbit << 4);
+ 918   3                                      TIME_Task.month  = timeBuffer.month_Lbit  + (timeBuffer.month_Hbit << 4);
+ 919   3                                      TIME_Task.day    = timeBuffer.day_Lbit    + (timeBuffer.day_Hbit << 4);
+ 920   3                                      TIME_Task.hour   = timeBuffer.hour_Lbit   + (timeBuffer.hour_Hbit << 4);
+ 921   3                                      TIME_Task.minute = timeBuffer.minute_Lbit + (timeBuffer.minute_Hbit << 4);
+ 922   3                                      TIME_Task.second = timeBuffer.sec_Lbit    + (timeBuffer.sec_Hbit << 4);
+ 923   3                                      // ½«BCDÂëÐ´ÈëDS1302Ð¾Æ¬
+ 924   3                                      MT_DS1302_SET_Time();
+ 925   3                              }
+ 926   2                               else
+ 927   2                              {// Êý¾Ý²»ºÏ·¨
+ 928   3                                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+ 929   3                                      MT_TFTLCD_Showstring(10,44," Invalid data   ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);
+ 930   3                                      MT_TFTLCD_Showstring(10,84,"   Fail         ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);
+ 931   3                              }
+ 932   2                              AppMenuVair.DisplayTim = 1500; // Æô¶¯1.5ÃëµÄÌáÊ¾ÐÅÏ¢ÏÔÊ¾¼ÆÊ±Æ÷
+ 933   2                              return;
+ 934   2                                                                      // --- Êý×Ö¼ü×ª»» --- 
+ 935   2                      case BackLight_NUM1: pdVal = 1; break;
+ 936   2                      case BackLight_NUM2: pdVal = 2; break;
+ 937   2                      case BackLight_NUM3: pdVal = 3; break;
+ 938   2                      case BackLight_NUM4: pdVal = 4; break;
+ 939   2                      case BackLight_NUM5: pdVal = 5; break;
+ 940   2                      case BackLight_NUM6: pdVal = 6; break;
+ 941   2                      case BackLight_NUM7: pdVal = 7; break;
+ 942   2                      case BackLight_NUM8: pdVal = 8; break;
+ 943   2                      case BackLight_NUM9: pdVal = 9; break;
+ 944   2                      case BackLight_NUM0: pdVal = 0; break;                            
+ 945   2              }
+ 946   1              if(pdVal < 10) // Èç¹û°´ÏÂÁËÊý×Ö¼ü
+ 947   1              {
+ 948   2                      pdat = (unsigned char *)(&timeBuffer); // ÈÃÖ¸ÕëÖ¸ÏòtimeBufferµÄÆðÊ¼µØÖ·
+ 949   2                      // ÀûÓÃÖ¸ÕëºÍ¹â±êÎ»ÖÃµÄÆ«ÒÆÁ¿£¬Ö±½ÓÐÞ¸Ä¶ÔÓ¦µÄ×Ö½Ú
+ 950   2                      pdat[AppMenuVair.CursorPos - 1] = pdVal;
+ 951   2                      
+ 952   2                      AppMenuVair.CursorPos++; // ×Ô¶¯½«¹â±êºóÒÆÒ»Î»
+ 953   2                      if(AppMenuVair.CursorPos == 13) // Ñ­»·µ½Í·
+ 954   2                      {
+ 955   3                         AppMenuVair.CursorPos = 1;
+ 956   3                      }
+ 957   2              }
+ 958   1              else if((pdVal == 11) || (pdVal == 12)) // Èç¹û°´ÏÂÁËÉÏ/ÏÂ¼ü
+ 959   1              {
+ 960   2                      if(pdVal == 11) // ÏòÉÏ
+ 961   2                      {
+ 962   3                         AppMenuVair.CursorPos--;
+ 963   3                         if(AppMenuVair.CursorPos == 0)
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 17  
+
+ 964   3                         {
+ 965   4                            AppMenuVair.CursorPos = 12;
+ 966   4                         }
+ 967   3                      }
+ 968   2                      else if(pdVal == 12) // ÏòÏÂ
+ 969   2                      {
+ 970   3                          AppMenuVair.CursorPos++;
+ 971   3                          if(AppMenuVair.CursorPos == 13)
+ 972   3                          {
+ 973   4                            AppMenuVair.CursorPos = 1;
+ 974   4                          }
+ 975   3                      }
+ 976   2              }
+ 977   1      }
+ 978          /**
+ 979           * @brief  Ìí¼ÓÐÂÓÃ»§²Ëµ¥´¦Àíº¯Êý
+ 980           */
+ 981          static void App_Menu_AddNerUser(void)
+ 982          {
+ 983   1            static unsigned char xdata passWord[SYSTEM_PASSWORD_BIT]; // ´æ´¢ÕýÔÚÊäÈëµÄÃÜÂë
+ 984   1            static unsigned char xdata GetRfidDat[4];                 // ´æ´¢Ë¢ÈëµÄRFID¿¨ºÅ
+ 985   1            static unsigned int xdata errorDisPlayDelayTim = 0;       // ÁÙÊ±ÏûÏ¢µÄÏÔÊ¾¼ÆÊ±Æ÷
+ 986   1            static unsigned int xdata OverDleyTim = 0;                // ÕûÌå²Ù×÷µÄ³¬Ê±¼ÆÊ±Æ÷
+ 987   1            static unsigned char xdata adminNum, normalNum;           // ¿ÉÓÃµÄ¹ÜÀíÔ±/ÆÕÍ¨ÓÃ»§ID
+ 988   1            static unsigned char xdata HaveAddAdiminNum, HaveAddNormalNum; // ÒÑ´æÔÚµÄ¹ÜÀíÔ±/ÆÕÍ¨ÓÃ»§ÊýÁ¿
+ 989   1            static unsigned char xdata UserType;                      // ±ê¼Çµ±Ç°Ñ¡ÔñµÄÓÃ»§ÀàÐÍ (0:Admin, 1:Normal
+ 990   1            
+ 991   1            unsigned char xdata i;
+ 992   1            str_AdminUserVair xdata adVair;     // ¹ÜÀíÔ±ÓÃ»§Êý¾Ý½á¹¹Ìå
+ 993   1            str_NormalUserVair xdata NoVari;    // ÆÕÍ¨ÓÃ»§Êý¾Ý½á¹¹Ìå
+ 994   1            unsigned char pdVal = 0;      //±£´æ°´¼üÖµ
+ 995   1            if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+ 996   1            {
+ 997   2                AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+ 998   2                // »æÖÆ²Ëµ¥±êÌâ
+ 999   2                MT_TFTLCD_Showstring(40,0, "Add User",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //
+1000   2                AppMenuVair.Refresh = 1;//1±íÊ¾Ë¢ÐÂÆÁÄ»  0 ±íÊ¾²»Ë¢ÐÂ
+1001   2                AppMenuVair.submenuTag = 0; //0Ñ¡ÔñÓÃ»§ÀàÐÍ   1 Ìí¼ÓRFID  2Ìí¼Ó¹ÜÀíÔ±ÃÜÂë 3Ìí¼ÓÓÃ»§³É¹¦ 4·µ»ØÖ÷½çÃæ
+1002   2                AppMenuVair.CursorPos = 0;  //¹â±ê
+1003   2                OverDleyTim = MENU_WAIT_OVER_TIME; //²Ù×÷³¬Ê±  20ÃëÃ»ÓÐÎÞ²Ù×÷£¬Ôò·µ»Ø
+1004   2                errorDisPlayDelayTim = 0; //ÌáÊ¾ÐÅÏ¢µÈ´ýÑÓÊ±Ê±¼ä£»
+1005   2                // »ñÈ¡µ±Ç°ÒÑ×¢²áµÄÓÃ»§ÐÅÏ¢
+1006   2                HaveAddAdiminNum = ParaGetSumNumber(EN_PARATYPE_ADMINUSER, &adminNum);
+1007   2                HaveAddNormalNum = ParaGetSumNumber(EN_PARATYPE_NORMALUSER, &normalNum);
+1008   2            }
+1009   1        
+1010   1            if(errorDisPlayDelayTim) // ´¦ÀíÁÙÊ±ÏûÏ¢µÄÏÔÊ¾
+1011   1            {
+1012   2              errorDisPlayDelayTim --;
+1013   2              if(errorDisPlayDelayTim == 0)
+1014   2              {
+1015   3                  if(AppMenuVair.submenuTag == 1)
+1016   3                  {///ÌáÊ¾ÊäÈëRFID ÒÑ¾­Ñ§Ï°Íê³É ½áÊø
+1017   4                      MT_TFTLCD_Showstring(20,50,"  Swipe rfid    ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0)
+             -;  //
+1018   4                      MT_TFTLCD_Showstring(20,70,"  Waiting...  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0); 
+             - //
+1019   4                      OverDleyTim = MENU_WAIT_OVER_TIME;//¸üÐÂÎÞ²Ù×÷³¬Ê±Ê±¼ä£»        
+1020   4                  }
+1021   3                  else if(AppMenuVair.submenuTag == 3)
+1022   3                  {//ÆÕÍ¨ÓÃ»§£¬Ìí¼ÓÓÃ»§³É¹¦£¬Ö±½ÓÍË³ö£»
+1023   4                      AppMenuVair.submenuTag = 3; 
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 18  
+
+1024   4                      AppMenuVair.Refresh = 1;        
+1025   4                      MT_TFTLCD_Showstring(0,60,"                    ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16
+             -,0);  //
+1026   4                  }
+1027   3               }                
+1028   2               return;
+1029   2             }
+1030   1             if(OverDleyTim) // ²Ù×÷³¬Ê±£¬20ÃëÃ»ÓÐÎÞ²Ù×÷£¬Ôò·µ»Ø
+1031   1             {
+1032   2                 OverDleyTim--;
+1033   2                 if(OverDleyTim==0)
+1034   2                 {
+1035   3                    AppMenuVair.submenuTag = 4; // Ç¿ÖÆÇÐ»»µ½ÍË³ö²½Öè
+1036   3                    AppMenuVair.Refresh = 1;    // ´¥·¢UIË¢ÐÂ
+1037   3                 }
+1038   2             }
+1039   1            if(AppMenuVair.Refresh)
+1040   1              {
+1041   2                      AppMenuVair.Refresh = 0; // Çå³ýË¢ÐÂ±êÖ¾
+1042   2                      switch(AppMenuVair.submenuTag)
+1043   2                      {
+1044   3                              case 0: // ²½Öè0: Ñ¡ÔñÒªÌí¼ÓµÄÓÃ»§ÀàÐÍ
+1045   3                              {
+1046   4                                      MT_TFTLCD_Showstring(10,30,"Add user type:",MENU_FONT_COLOR,COLOR_TFTLCD_B
+             -ACKLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ
+1047   4                                      MT_TFTLCD_Showstring(20,50,"> Admin       ",MENU_FONT_COLOR,COLOR_TFTLCD_B
+             -ACKLIGHT,16,0);  //
+1048   4                                      MT_TFTLCD_Showstring(20,70,"  Normal      ",MENU_FONT_COLOR,COLOR_TFTLCD_B
+             -ACKLIGHT,16,0);  //
+1049   4                                      OverDleyTim = MENU_WAIT_OVER_TIME;
+1050   4                                      AppMenuVair.DisplayDat[0] = HaveAddAdiminNum/10 + '0';
+1051   4                                      AppMenuVair.DisplayDat[1] = HaveAddAdiminNum%10 + '0';
+1052   4                                      AppMenuVair.DisplayDat[2] = '/';
+1053   4                                      AppMenuVair.DisplayDat[3] = MAX_ADMIN_USER_NUMBER + '0';
+1054   4                                      AppMenuVair.DisplayDat[4] = 0;
+1055   4                                      MT_TFTLCD_Showstring(88,50,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TF
+             -TLCD_BACKLIGHT,16,0);  //
+1056   4                                      
+1057   4                                      AppMenuVair.DisplayDat[0] = HaveAddNormalNum/10 + '0';
+1058   4                                      AppMenuVair.DisplayDat[1] = HaveAddNormalNum%10 + '0';
+1059   4                                      AppMenuVair.DisplayDat[2] = '/';
+1060   4                                      AppMenuVair.DisplayDat[3] = MAX_USER_NUMBER/10 + '0';
+1061   4                                      AppMenuVair.DisplayDat[4] = MAX_USER_NUMBER%10 + '0';
+1062   4                                      AppMenuVair.DisplayDat[5] = 0;
+1063   4                                      MT_TFTLCD_Showstring(88,70,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TF
+             -TLCD_BACKLIGHT,16,0);  //                                
+1064   4                              }
+1065   3                              break;
+1066   3                              case 1: // ²½Öè1: ÌáÊ¾ÓÃ»§Ë¢ÈëRFID¿¨
+1067   3                              {
+1068   4                                      MT_TFTLCD_Showstring(10,30,"Add RFID cards ",MENU_FONT_COLOR,COLOR_TFTLCD_
+             -BACKLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ
+1069   4                                      MT_TFTLCD_Showstring(20,50,"  Swipe rfid    ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);  //
+1070   4                                      MT_TFTLCD_Showstring(20,70,"  Waiting...  ",MENU_FONT_COLOR,COLOR_TFTLCD_B
+             -ACKLIGHT,16,0);  //
+1071   4      
+1072   4                                      OverDleyTim = MENU_WAIT_OVER_TIME;
+1073   4                              }
+1074   3                              break;
+1075   3                              case 2: // ²½Öè2: ÌáÊ¾ÓÃ»§ÊäÈëÃÜÂë (½öÏÞ¹ÜÀíÔ±)
+1076   3                              {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 19  
+
+1077   4                                      MT_TFTLCD_Showstring(10,30,"Add Password  ",MENU_FONT_COLOR,COLOR_TFTLCD_B
+             -ACKLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ
+1078   4                                      MT_TFTLCD_Showstring(0,60,"                    ",MENU_FONT_COLOR,COLOR_TFT
+             -LCD_BACKLIGHT,16,0);  //
+1079   4                                      MT_TFTLCD_DrawLine(40,90,55,90,MENU_FONT_COLOR);
+1080   4                                      MT_TFTLCD_DrawLine(65,90,80,90,MENU_FONT_COLOR);
+1081   4                                      MT_TFTLCD_DrawLine(90,90,105,90,MENU_FONT_COLOR);
+1082   4                                      MT_TFTLCD_DrawLine(115,90,130,90,MENU_FONT_COLOR);//
+1083   4                                      AppMenuVair.CursorPos  = 0;
+1084   4                                      OverDleyTim = MENU_WAIT_OVER_TIME;
+1085   4                              }
+1086   3                              break;
+1087   3                              case 3: // ²½Öè3: ÏÔÊ¾³É¹¦ÐÅÏ¢²¢±£´æÊý¾Ý
+1088   3                              {
+1089   4                                      MT_TFTLCD_Showstring(10,30,"Add New User    ",MENU_FONT_COLOR,COLOR_TFTLCD
+             -_BACKLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ                                
+1090   4                                      MT_TFTLCD_Showstring(10,68,"  success  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACK
+             -LIGHT,24,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ
+1091   4                                      errorDisPlayDelayTim = 1000; // ÏÔÊ¾1Ãë³É¹¦ÐÅÏ¢
+1092   4                                      AppMenuVair.submenuTag = 4;        
+1093   4                                      AppMenuVair.Refresh = 1;
+1094   4                                      if(UserType == 0)
+1095   4                                      {
+1096   5                                        for(i=0;i<4;i++)
+1097   5                                            {
+1098   6                                                adVair.password[i] = passWord[i];
+1099   6                                                adVair.rfidData[i] = GetRfidDat[i];
+1100   6                                            }
+1101   5                                            ParaSaveAdminVair(adminNum,adVair);
+1102   5                                      }
+1103   4                                      
+1104   4                              }
+1105   3                              break;
+1106   3                              case 4: // ²½Öè4: ÍË³ö½çÃæ
+1107   3                              {
+1108   4                                  MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+1109   4                                  if(!ParaGetSumNumber(EN_PARATYPE_ADMINUSER, &adminNum))//Èç¹ûÃ»ÓÐ¹ÜÀíÔ±ÔòÖ±½ÓÍË³öµ½×ÀÃæ
+1110   4                                  {
+1111   5                                    App_Task_MenuToggle(MENU_DESKTOP,TFTLCD_UI_INIT);
+1112   5                                  }
+1113   4                                  else
+1114   4                                  App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);//ÍË³öµ½Ö÷²Ëµ¥        
+1115   4                              }
+1116   3                              break;
+1117   3                      }
+1118   2              } 
+1119   1              if(AppMenuVair.submenuTag == 1)
+1120   1              {//Ôö¼ÓRFID ¿¨Æ¬
+1121   2                      if(MT_PWMB_GetRfidData(GetRfidDat))
+1122   2                      {        ///»ñÈ¡RFID Êý¾Ý³É¹¦
+1123   3                              if(ParaCheckRfidData(GetRfidDat) == 0xff)
+1124   3                              {//RFID ÏµÍ³ÖÐÃ»ÓÐ±»Ñ§Ï°£¬Ìí¼ÓRFID¿¨³É¹¦£»
+1125   4                                      if(UserType == 1)
+1126   4                                      {//ÆÕÍ¨ÓÃ»§²»ÐèÒªÉèÖÃ Êý×ÖÃÜÂë  Ö±½ÓÌáÊ¾ÓÃ»§Ìí¼Ó³É¹¦£»
+1127   5                                              AppMenuVair.submenuTag = 3;                                       
+             -  
+1128   5                                              for(i=0;i<4;i++)
+1129   5                                              {
+1130   6                                                      NoVari.rfidData[i] = GetRfidDat[i];
+1131   6                                              }        
+1132   5                                              ParaSaveNormalVair(normalNum,NoVari);
+1133   5                                      }
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 20  
+
+1134   4                                      else
+1135   4                                      {//¹ÜÀíÔ±ÐèÒªÌí¼ÓÓÃ»§ÃÜÂë
+1136   5                                          AppMenuVair.submenuTag = 2;
+1137   5                                      }
+1138   4                                      AppMenuVair.Refresh = 1;
+1139   4                                      MT_TFTLCD_Showstring(20,50,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BA
+             -CKLIGHT,16,0);  //
+1140   4                                      MT_TFTLCD_Showstring(20,70,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BA
+             -CKLIGHT,16,0);  //
+1141   4                                      MT_TFTLCD_Showstring(10,60,"RFID ID:    ",MENU_FONT_COLOR,COLOR_TFTLCD_BAC
+             -KLIGHT,16,0);  //
+1142   4                                      App_Menu_DisPlayRFIDNum(76,60,GetRfidDat);
+1143   4                                      errorDisPlayDelayTim = 2000;                                
+1144   4                              }
+1145   3                              else
+1146   3                              {///RFID ÒÑ¾­±»Ñ§Ï°¡£ÐèÒª¸ü»»ÐÂµÄRFID ¿¨Æ¬
+1147   4                                      MT_TFTLCD_Showstring(20,50,"have been Study",MENU_FONT_COLOR,COLOR_TFTLCD_
+             -BACKLIGHT,16,0);  //
+1148   4                                      MT_TFTLCD_Showstring(20,70,"    Error...   ",MENU_FONT_COLOR,COLOR_TFTLCD_
+             -BACKLIGHT,16,0);  //
+1149   4                                      errorDisPlayDelayTim = 1000;                
+1150   4                              }        
+1151   3                      }
+1152   2              }
+1153   1              AppMenuVair.TouchKeyNum = MT_GetKeyState();
+1154   1              if(AppMenuVair.TouchKeyNum == 0xff) return; // ÎÞ°´¼üÔò·µ»Ø
+1155   1              OverDleyTim = MENU_WAIT_OVER_TIME;
+1156   1              pdVal = 0xff; // ³õÊ¼»¯ÎªÎÞÐ§Öµ
+1157   1              switch(AppMenuVair.TouchKeyNum)
+1158   1              {
+1159   2                      case BackLight_NUM1:
+1160   2                      {
+1161   3                              pdVal = 1;
+1162   3                      }                        
+1163   2                      break;
+1164   2                      case BackLight_NUM2:
+1165   2                      {
+1166   3                              pdVal = 2;
+1167   3                      }                        
+1168   2                      break;
+1169   2                      case BackLight_NUM3:
+1170   2                      {
+1171   3                              pdVal = 3;
+1172   3                      }                        
+1173   2                      break;        
+1174   2                      case BackLight_NUM4:
+1175   2                      {
+1176   3                              pdVal = 4;
+1177   3                      }                        
+1178   2                      break;                        
+1179   2                      case BackLight_NUM5:        
+1180   2                      {
+1181   3                              pdVal = 5;
+1182   3                      }
+1183   2                      break;
+1184   2                      case BackLight_NUM6:
+1185   2                      {
+1186   3                              pdVal = 6;
+1187   3                      }                        
+1188   2                      break;
+1189   2                      case BackLight_NUM7:
+1190   2                      {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 21  
+
+1191   3                              pdVal = 7;
+1192   3                      }                        
+1193   2                      break;                        
+1194   2                      case BackLight_NUM8:
+1195   2                      {
+1196   3                              pdVal = 8;
+1197   3                      }                        
+1198   2                      break;
+1199   2                      case BackLight_NUM9:
+1200   2                      {
+1201   3                              pdVal = 9;
+1202   3                      }                        
+1203   2                      break;                
+1204   2                      case BackLight_NUM0:
+1205   2                      {
+1206   3                              pdVal = 0;
+1207   3                      }                        
+1208   2                      break;                
+1209   2                      case BackLight_Ring:                        
+1210   2                      break;
+1211   2                      case BackLight_UP:
+1212   2                      {
+1213   3                              pdVal = 11;
+1214   3                      }        
+1215   2                      break;
+1216   2                      case BackLight_DOWN:
+1217   2                      {
+1218   3                              pdVal = 12;
+1219   3                      }        
+1220   2                      break;
+1221   2                      case BackLight_Delete:
+1222   2                      {
+1223   3                              if((AppMenuVair.CursorPos > 0) &&(AppMenuVair.submenuTag == 2))
+1224   3                              {
+1225   4                                      AppMenuVair.CursorPos --;
+1226   4                                      passWord[AppMenuVair.CursorPos] = 0xff;
+1227   4                                      MT_TFTLCD_Showstring(43+(25*AppMenuVair.CursorPos),68," ",MENU_FONT_COLOR,
+             -COLOR_TFTLCD_BACKLIGHT,16,0);        
+1228   4                              }
+1229   3                      }
+1230   2                      break;
+1231   2      
+1232   2                      case BackLight_BACK:
+1233   2                      {//·µ»ØÖ÷²Ëµ¥
+1234   3                              AppMenuVair.submenuTag = 4;
+1235   3                              AppMenuVair.Refresh = 1;
+1236   3                      }
+1237   2                      break;                
+1238   2                      case BackLight_ENTER:///goto password
+1239   2                      {
+1240   3                              switch(AppMenuVair.submenuTag)
+1241   3                              {
+1242   4                                      case 0:
+1243   4                                      {        
+1244   5                                         if((AppMenuVair.CursorPos == 0) && (adminNum == 0xff))//adminNumÎª0XFFÔ
+             -ò±íÊ¾ÓÃ»§ÒÑÂú
+1245   5                                         {
+1246   6                                            return;
+1247   6                                         }
+1248   5                                         else if((AppMenuVair.CursorPos == 1) && (normalNum == 0xff))
+1249   5                                         {
+1250   6                                            return;
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 22  
+
+1251   6                                         }
+1252   5                                         UserType = AppMenuVair.CursorPos;//Ìí¼ÓµÄÓÃ»§ÀàÐÍ£¬0:Admin, 1:Normal
+1253   5                                         AppMenuVair.submenuTag = 1;
+1254   5                                         AppMenuVair.Refresh = 1;
+1255   5                                      }
+1256   4                                      break;
+1257   4                                      case 2:
+1258   4                                      {
+1259   5                                              if(AppMenuVair.CursorPos == 4)
+1260   5                                              {///Ôö¼Ó±£´æÊý¾Ý½çÃæ
+1261   6                                                      AppMenuVair.submenuTag = 3;
+1262   6                                                      AppMenuVair.Refresh = 1;                                  
+             -              
+1263   6                                              }                
+1264   5                                      }
+1265   4                                      break;                        
+1266   4                              }                        
+1267   3                      }        
+1268   2                      break;                         
+1269   2              }
+1270   1              if((pdVal < 10) && (AppMenuVair.submenuTag == 2))
+1271   1              {//ÅäÖÃÓÃ»§ÃÜÂë
+1272   2                      if(AppMenuVair.CursorPos < SYSTEM_PASSWORD_BIT)
+1273   2                      {
+1274   3                              passWord[AppMenuVair.CursorPos] = pdVal;        
+1275   3                              MT_TFTLCD_ShowChar(43+(25*AppMenuVair.CursorPos),68,(0x30+pdVal),MENU_FONT_COLOR,C
+             -OLOR_TFTLCD_BACKLIGHT,16,0);
+1276   3                              AppMenuVair.CursorPos ++;
+1277   3                      }
+1278   2              }
+1279   1              if(((pdVal == 11) || (pdVal == 12)) && (AppMenuVair.submenuTag == 0))
+1280   1              {
+1281   2                      //Ñ¡ÔñÓÃ»§ÀàÐÍ    ¹ÜÀíÔ±&ÆÕÍ¨ÓÃ»§
+1282   2                      if(AppMenuVair.CursorPos == 0)        
+1283   2                      {
+1284   3                              AppMenuVair.CursorPos = 1;        
+1285   3                      }
+1286   2                      else
+1287   2                      {
+1288   3                              AppMenuVair.CursorPos = 0;
+1289   3                      }
+1290   2                      MT_TFTLCD_Showstring(20,50," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1291   2                      MT_TFTLCD_Showstring(20,70," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1292   2                      MT_TFTLCD_Showstring(20,50+AppMenuVair.CursorPos*20,">",MENU_FONT_COLOR,COLOR_TFTLCD_BACKL
+             -IGHT,16,0);  //
+1293   2              }
+1294   1      }
+1295          
+1296          /**
+1297           * @brief  ¹ÜÀíÓÃ»§ÐÅÏ¢²Ëµ¥´¦Àíº¯Êý
+1298           */
+1299          static void App_Menu_ManageUserInfo(void)
+1300          {
+1301   1          static unsigned char xdata Refresh,Refresh1; // UIË¢ÐÂ±êÖ¾ (Refresh:¾²Ì¬Ä£°å, Refresh1:¶¯Ì¬Êý¾Ý)
+1302   1          static unsigned char xdata RefreshNumId;     // µ±Ç°ÏÔÊ¾µÄÓÃ»§ÔÚÁÐ±íÖÐµÄÐòºÅ (´Ó1¿ªÊ¼)
+1303   1          static unsigned char xdata adminNum,normalNum; // ¿ÉÓÃµÄ¿ÕÏÐÓÃ»§ID
+1304   1          static unsigned char xdata HaveAddAdiminNum,HaveAddNormalNum; // ÒÑÌí¼ÓµÄ¹ÜÀíÔ±ºÍÆÕÍ¨ÓÃ»§ÊýÁ¿
+1305   1          static unsigned char xdata dislayUserId;     // µ±Ç°ÏÔÊ¾µÄÓÃ»§ÔÚÈ«¾ÖÊý×éÖÐµÄÊµ¼ÊË÷Òý
+1306   1          unsigned char xdata GetRfidDat[4]; // ÓÃÓÚ´æ´¢»ñÈ¡µ½µÄRFID¿¨ºÅ
+1307   1      
+1308   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+1309   1              {
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 23  
+
+1310   2                      AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+1311   2                      MT_TFTLCD_Showstring(25,0, "USER INFO",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  
+1312   2                      AppMenuVair.CursorPos = 0;
+1313   2                      // ´Ó²ÎÊýÄ£¿é»ñÈ¡µ±Ç°ÒÑ´æÔÚµÄÓÃ»§×ÜÊý
+1314   2                      HaveAddAdiminNum = ParaGetSumNumber(EN_PARATYPE_ADMINUSER,&adminNum);
+1315   2                      HaveAddNormalNum = ParaGetSumNumber(EN_PARATYPE_NORMALUSER,&normalNum);
+1316   2                      if((HaveAddAdiminNum == 0) && (HaveAddNormalNum == 0))
+1317   2                      {
+1318   3                         Refresh = 0;
+1319   3                         Refresh1 = 0;
+1320   3                         // Èç¹ûÃ»ÓÐÈÎºÎÓÃ»§£¬ÔòÏÔÊ¾ÌáÊ¾ÐÅÏ¢²¢Ö±½Ó·µ»Ø
+1321   3                         MT_TFTLCD_Showstring(10,44,"No user  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1322   3                         AppMenuVair.submenuTag = 2; // ÉèÖÃÎª¡°ÎÞÓÃ»§¡±×´Ì¬£¬Ëø¶¨´ó²¿·Ö°´¼ü
+1323   3                         return;
+1324   3                      }
+1325   2                      AppMenuVair.DisplayTim = 0; // Çå³ýÉ¾³ý³É¹¦ºóµÄÑÓÊ±¼ÆÊ±Æ÷
+1326   2                      // Èç¹û´æÔÚÓÃ»§£¬Ôò³õÊ¼»¯ËùÓÐ×´Ì¬±äÁ¿£¬×¼±¸ÏÔÊ¾µÚÒ»¸öÓÃ»§
+1327   2                      RefreshNumId = 1; // ´ÓÁÐ±íµÄµÚÒ»¸ö¿ªÊ¼ÏÔÊ¾£¬ÏÔÊ¾µÚÒ»¸öÓÃ»§
+1328   2                      Refresh = 1;      // ´¥·¢¾²Ì¬UIÄ£°åË¢ÐÂ
+1329   2                      Refresh1 = 1;     // ´¥·¢¶¯Ì¬ÓÃ»§Êý¾ÝË¢ÐÂ
+1330   2                      AppMenuVair.submenuTag = 0; // ÉèÖÃÎªÕý³£µÄä¯ÀÀ×´Ì¬
+1331   2                      // µ÷ÓÃ¸¨Öúº¯Êý£¬Í¨¹ýÁÐ±íÐòºÅ(1)»ñÈ¡¸ÃÓÃ»§ÔÚÈ«¾ÖÊý×éÖÐµÄÊµ¼ÊË÷Òý
+1332   2                      dislayUserId = ParaUserInfo(RefreshNumId);
+1333   2              }
+1334   1              if(AppMenuVair.DisplayTim) // ´¦ÀíÉ¾³ý³É¹¦ºóµÄÌáÊ¾ÏûÏ¢
+1335   1              {
+1336   2                      AppMenuVair.DisplayTim--; // µ¹¼ÆÊ±
+1337   2                      if(AppMenuVair.DisplayTim == 0) // µ¹¼ÆÊ±½áÊø
+1338   2                      {
+1339   3                        MT_TFTLCD_Showstring(25,0, "          ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1340   3                        MT_TFTLCD_Showstring(10,44,"           ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1341   3                        Refresh = 1;
+1342   3                        Refresh1 = 1;
+1343   3                        AppMenuVair.UiDisplay = TFTLCD_UI_INIT;
+1344   3                      }
+1345   2                      return; // ÔÚÏûÏ¢ÏÔÊ¾ÆÚ¼ä£¬²»´¦ÀíÆäËûÂß¼­
+1346   2              }
+1347   1              if(MT_PWMB_GetRfidData(GetRfidDat)) // ÂÖÑ¯RFIDË¢¿¨ÊÂ¼þ
+1348   1              {
+1349   2                      dislayUserId = ParaCheckRfidData(GetRfidDat); // ¼ì²é¿¨ÊÇ·ñ´æÔÚ²¢»ñÈ¡ÆäÔÚÈ«¾ÖÊý×éµÄË÷Òý
+1350   2                      if(dislayUserId != 0xff) // Èç¹û¿¨´æÔÚ
+1351   2                      {
+1352   3                              Refresh1 = 1; // ´¥·¢¶¯Ì¬Êý¾ÝË¢ÐÂ
+1353   3                              // Í¨¹ý¿¨ºÅ·´²éËüÔÚÁÐ±íÖÐµÄÐòºÅ£¬ÓÃÓÚ¸üÐÂ "1/N" µÄÏÔÊ¾
+1354   3                              RefreshNumId = ParaCompareRfidId(GetRfidDat);
+1355   3                      }
+1356   2              }
+1357   1              // --- 3. UIË¢ÐÂÂß¼­ ---
+1358   1              if(Refresh) // Ë¢ÐÂ¾²Ì¬Ä£°å (Ö»ÔÚÐèÒªÊ±Ö´ÐÐ)
+1359   1              {
+1360   2                      Refresh = 0; // Çå³ýË¢ÐÂ±êÖ¾
+1361   2                      MT_TFTLCD_Showstring(10,24,"ID:         ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1362   2                      MT_TFTLCD_Showstring(10,44,"Type:       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1363   2                      MT_TFTLCD_Showstring(10,64,"Password:   ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1364   2                      MT_TFTLCD_Showstring(10,84,"RFID:       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1365   2                      MT_TFTLCD_Showstring(10,104,"> Delete User?",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1366   2              }
+1367   1              if(Refresh1) // Ë¢ÐÂ¶¯Ì¬ÓÃ»§Êý¾Ý (Ö»ÔÚÐèÒªÊ±Ö´ÐÐ)
+1368   1              {
+1369   2                      Refresh1 = 0; // Çå³ýË¢ÐÂ±êÖ¾
+1370   2                      
+1371   2                     //ÏÔÊ¾ÓÃ»§ID£¬
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 24  
+
+1372   2                      if(dislayUserId <  MAX_ADMIN_USER_NUMBER)
+1373   2                      {                        
+1374   3                              AppMenuVair.DisplayDat[0] = '0' + PARA_GET_PARA_ADMIN_ID(dislayUserId) / 10;
+1375   3                              AppMenuVair.DisplayDat[1] = '0' + PARA_GET_PARA_ADMIN_ID(dislayUserId) % 10;
+1376   3                              AppMenuVair.DisplayDat[2] = 0;                
+1377   3                      }
+1378   2                      else
+1379   2                      {
+1380   3                              AppMenuVair.DisplayDat[0] = '0' + PARA_GET_PARA_NORMAL_ID(dislayUserId-MAX_ADMIN_U
+             -SER_NUMBER) / 10;
+1381   3                              AppMenuVair.DisplayDat[1] = '0' + PARA_GET_PARA_NORMAL_ID(dislayUserId-MAX_ADMIN_U
+             -SER_NUMBER) % 10;
+1382   3                              AppMenuVair.DisplayDat[2] = 0;
+1383   3                      }
+1384   2                      MT_TFTLCD_Showstring(60,24,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,1
+             -6,0);
+1385   2                      //ÏÔÊ¾µ±Ç°ÓÃ»§ÔÚÁÐ±íÖÐµÄÐòºÅ
+1386   2                      AppMenuVair.DisplayDat[0] = '0' + RefreshNumId / 10;
+1387   2                      AppMenuVair.DisplayDat[1] = '0' + RefreshNumId % 10;
+1388   2                      AppMenuVair.DisplayDat[2] = '/';        
+1389   2                      AppMenuVair.DisplayDat[3] = '0' + (HaveAddAdiminNum + HaveAddNormalNum)/ 10;
+1390   2                      AppMenuVair.DisplayDat[4] = '0' + (HaveAddAdiminNum + HaveAddNormalNum) % 10;             
+             -   
+1391   2                      AppMenuVair.DisplayDat[5] = 0;                
+1392   2                      MT_TFTLCD_Showstring(110,24,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,
+             -16,0);
+1393   2                      //ÏÔÊ¾ÓÃ»§ÀàÐÍ
+1394   2                      if(dislayUserId < MAX_ADMIN_USER_NUMBER)
+1395   2                      {
+1396   3                              MT_TFTLCD_Showstring(58,44,"Adminstrator",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,1
+             -6,0);  //
+1397   3                      }
+1398   2                      else
+1399   2                      {    
+1400   3                              MT_TFTLCD_Showstring(58,44,"User        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,1
+             -6,0);  //
+1401   3                      }
+1402   2                      //=========================ÏÔÊ¾ÓÃ»§ÃÜÂë
+1403   2                      if(dislayUserId < MAX_ADMIN_USER_NUMBER)
+1404   2                      {
+1405   3                              AppMenuVair.DisplayDat[0] = '0' + PARA_GET_PARA_ADMIN_PASSWORD(dislayUserId,0) % 1
+             -0;
+1406   3                              AppMenuVair.DisplayDat[1] = '0' + PARA_GET_PARA_ADMIN_PASSWORD(dislayUserId,1) % 1
+             -0;
+1407   3                              AppMenuVair.DisplayDat[2] = '0' + PARA_GET_PARA_ADMIN_PASSWORD(dislayUserId,2) % 1
+             -0;
+1408   3                              AppMenuVair.DisplayDat[3] = '0' + PARA_GET_PARA_ADMIN_PASSWORD(dislayUserId,3) % 1
+             -0;
+1409   3                              AppMenuVair.DisplayDat[4] = 0;
+1410   3                              MT_TFTLCD_Showstring(80,64,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BAC
+             -KLIGHT,16,0); 
+1411   3                      }
+1412   2                      else
+1413   2                      {
+1414   3                              MT_TFTLCD_Showstring(80,64,"----",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0); 
+1415   3                      }
+1416   2                      //ÏÔÊ¾ÓÃ»§RFID 
+1417   2                      if(dislayUserId < MAX_ADMIN_USER_NUMBER)
+1418   2                      {
+1419   3                              GetRfidDat[0] = PARA_GET_PARA_ADMIN_RFIDATA(dislayUserId,0);
+1420   3                              GetRfidDat[1] = PARA_GET_PARA_ADMIN_RFIDATA(dislayUserId,1); 
+1421   3                              GetRfidDat[2] = PARA_GET_PARA_ADMIN_RFIDATA(dislayUserId,2); 
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 25  
+
+1422   3                              GetRfidDat[3] = PARA_GET_PARA_ADMIN_RFIDATA(dislayUserId,3);                 
+1423   3                      }
+1424   2                      else
+1425   2                      {
+1426   3                              GetRfidDat[0] = PARA_GET_PARA_NORMAL_RFIDATA((dislayUserId-MAX_ADMIN_USER_NUMBER),
+             -0);
+1427   3                              GetRfidDat[1] = PARA_GET_PARA_NORMAL_RFIDATA((dislayUserId-MAX_ADMIN_USER_NUMBER),
+             -1);
+1428   3                              GetRfidDat[2] = PARA_GET_PARA_NORMAL_RFIDATA((dislayUserId-MAX_ADMIN_USER_NUMBER),
+             -2);
+1429   3                              GetRfidDat[3] = PARA_GET_PARA_NORMAL_RFIDATA((dislayUserId-MAX_ADMIN_USER_NUMBER),
+             -3);
+1430   3                      }
+1431   2                      App_Menu_DisPlayRFIDNum(55,84,GetRfidDat);        
+1432   2              }
+1433   1              AppMenuVair.TouchKeyNum = MT_GetKeyState();
+1434   1              if(AppMenuVair.TouchKeyNum == 0xff) 
+1435   1              return; // Èç¹ûÃ»ÓÐ°´¼ü£¬Ö±½Ó·µ»Ø
+1436   1              AppMenuVair.pdVal = 0xff; // ³õÊ¼»¯¹¦ÄÜÂëÎªÎÞÐ§Öµ
+1437   1              // ½«°´¼üÃ¶¾Ù×ª»»ÎªÄÚ²¿¹¦ÄÜÂë
+1438   1              switch(AppMenuVair.TouchKeyNum)
+1439   1              {                
+1440   2                      case BackLight_UP: AppMenuVair.pdVal = 11; break; // ÏòÉÏ
+1441   2                      case BackLight_DOWN: AppMenuVair.pdVal = 12; break; // ÏòÏÂ
+1442   2                      case BackLight_Delete: AppMenuVair.pdVal = 13; break; // É¾³ý
+1443   2                      case BackLight_BACK: AppMenuVair.pdVal = 14; break; // ·µ»Ø
+1444   2                      case BackLight_ENTER: AppMenuVair.pdVal = 15; break; // È·ÈÏ
+1445   2              }
+1446   1              // ¸ù¾Ýµ±Ç°µÄ×ÓÁ÷³Ì×´Ì¬(submenuTag)Ö´ÐÐ²»Í¬µÄ²Ù×÷
+1447   1              switch(AppMenuVair.submenuTag)
+1448   1              {
+1449   2                      case 0: // ×´Ì¬0: Õý³£ä¯ÀÀÓÃ»§½çÃæ
+1450   2                      {
+1451   3                              if(AppMenuVair.pdVal == 11) // ÏòÉÏ°´¼ü
+1452   3                              {
+1453   4                                      RefreshNumId--; // ÁÐ±íÐòºÅ¼õ1
+1454   4                                      if(RefreshNumId == 0) RefreshNumId = (HaveAddAdiminNum + HaveAddNormalNum)
+             -; // Ñ­»·µ½Ä©Î²
+1455   4                                      Refresh1 = 1; // ´¥·¢Êý¾ÝË¢ÐÂ
+1456   4                                      dislayUserId = ParaUserInfo(RefreshNumId); // »ñÈ¡ÐÂµÄÓÃ»§Ë÷Òý
+1457   4                              }
+1458   3                              if(AppMenuVair.pdVal == 12) // ÏòÏÂ°´¼ü
+1459   3                              {
+1460   4                                      RefreshNumId++; // ÁÐ±íÐòºÅ¼Ó1
+1461   4                                      if(RefreshNumId > (HaveAddAdiminNum + HaveAddNormalNum)) RefreshNumId = 1;
+             - // Ñ­»·µ½¿ªÍ·
+1462   4                                      dislayUserId = ParaUserInfo(RefreshNumId);
+1463   4                                      Refresh1 = 1;
+1464   4                              }
+1465   3                              if(AppMenuVair.pdVal == 13) // É¾³ý°´¼ü
+1466   3                              {
+1467   4                                      AppMenuVair.submenuTag = 1; // ½øÈë¡°È·ÈÏÉ¾³ý¡±×´Ì¬
+1468   4                                      // ÇåÀíÆÁÄ»²¢ÏÔÊ¾¶þ´ÎÈ·ÈÏÌáÊ¾
+1469   4                                      MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+1470   4                                      MT_TFTLCD_Showstring(10,64,"Want to delete?",MENU_FONT_COLOR,COLOR_TFTLCD_
+             -BACKLIGHT,16,0);
+1471   4                              }
+1472   3                              if(AppMenuVair.pdVal == 14) // ·µ»Ø°´¼ü
+1473   3                              {
+1474   4                                // ·µ»ØÖ÷²Ëµ¥
+1475   4                                MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+1476   4                                App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 26  
+
+1477   4                              }
+1478   3                      }
+1479   2                      break;
+1480   2                      case 1: // ×´Ì¬1: È·ÈÏÉ¾³ý½çÃæ
+1481   2                              if(AppMenuVair.pdVal == 14) // ·µ»Ø°´¼ü (È¡ÏûÉ¾³ý)
+1482   2                              {
+1483   3                                 MT_TFTLCD_Showstring(10,64,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BAC
+             -KLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ        
+1484   3                                 AppMenuVair.submenuTag = 0; // ·µ»Øä¯ÀÀ×´Ì¬
+1485   3                                 Refresh1 = 1; // ´¥·¢Êý¾ÝË¢ÐÂ
+1486   3                                 Refresh = 1;  // ´¥·¢Ä£°åË¢ÐÂ
+1487   3                              }
+1488   2                              if(AppMenuVair.pdVal == 15) // È·ÈÏ°´¼ü (Ö´ÐÐÉ¾³ý)
+1489   2                              {
+1490   3                                 AppMenuVair.submenuTag = 0;
+1491   3                                 Refresh1 = 1;
+1492   3                                 Refresh = 1;        
+1493   3                                 AppMenuVair.DisplayTim = 1000;
+1494   3                                 MT_TFTLCD_Showstring(10,64,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BAC
+             -KLIGHT,16,0);  //Ñ¡ÔñÔö¼ÓµÄÓÃ»§ÀàÐÍ        
+1495   3                                 MT_TFTLCD_Showstring(10,44,"Update..",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24
+             -,0);  //  
+1496   3                                 // ½«¶ÔÓ¦ÓÃ»§µÄmark±êÖ¾Î»ÖÃÎª0£¬Ê¹ÆäÔÚÂß¼­ÉÏ±»É¾³ý
+1497   3                                 if(dislayUserId < MAX_ADMIN_USER_NUMBER) 
+1498   3                                 {
+1499   4                                    PARA_SET_PARA_ADMIN_MARK(dislayUserId,0);
+1500   4                                 }
+1501   3                                 else
+1502   3                                 {
+1503   4                                    PARA_SET_PARA_NORMA_MARK((dislayUserId-MAX_ADMIN_USER_NUMBER),0);
+1504   4                                 }
+1505   3                                 ParaSaveAllVair(); // ½«¸üÐÂºóµÄËùÓÐ²ÎÊýÖØÐÂÐ´ÈëEEPROM
+1506   3                              }
+1507   2                      break;
+1508   2                      case 2: // ×´Ì¬2: ÎÞÓÃ»§½çÃæ
+1509   2                              if(AppMenuVair.pdVal == 14) // Ö»ÏìÓ¦·µ»Ø¼ü
+1510   2                              {
+1511   3                                      App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);
+1512   3                              }
+1513   2                      break;
+1514   2              }
+1515   1      
+1516   1      }
+1517          
+1518          /**
+1519           * @brief  ÏµÍ³ÉèÖÃ²Ëµ¥´¦Àíº¯Êý
+1520           */
+1521          static void App_Menu_SystemSet(void)
+1522          {
+1523   1          static unsigned char xdata OperStep,Refresh; // OperStep: ×Ó²Ëµ¥×´Ì¬»ú, Refresh: UIË¢ÐÂ±êÖ¾
+1524   1          static unsigned int xdata DisPlayDelayTim = 0; // ÓÃÓÚ¡°Update..¡±µÈÏûÏ¢µÄÏÔÊ¾¼ÆÊ±Æ÷
+1525   1      
+1526   1                  // --- ÁÙÊ±±äÁ¿¶¨Òå ---
+1527   1          unsigned char pdVal = 0xff; // ´æ´¢°´¼ü×ª»»ºóµÄ¹¦ÄÜÂë
+1528   1          if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+1529   1          {
+1530   2            AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+1531   2            // »æÖÆ²Ëµ¥±êÌâºÍËùÓÐ²Ëµ¥Ïî
+1532   2            MT_TFTLCD_Showstring(40,0, "SETTING  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1533   2            AppMenuVair.CursorPos = 0; // Ö÷²Ëµ¥¹â±êÄ¬ÈÏÔÚµÚÒ»Ïî
+1534   2            DisPlayDelayTim = 0;       // Çå³ý¼ÆÊ±Æ÷
+1535   2            OperStep = 0;              // ³õÊ¼»¯×Ó×´Ì¬»úÎª0 (Ö÷²Ëµ¥)
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 27  
+
+1536   2            Refresh = 1;               // ´¥·¢UIË¢ÐÂ
+1537   2          }
+1538   1          if(Refresh)
+1539   1          {
+1540   2            Refresh = 0; // Çå³ýË¢ÐÂ±êÖ¾
+1541   2            MT_TFTLCD_Showstring(10,24,"  Factory Reset",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1542   2            MT_TFTLCD_Showstring(10,44,"  WG Output    ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1543   2            MT_TFTLCD_Showstring(10,64,"  ModBus Output",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1544   2            // ¸ù¾ÝÖ÷¹â±êÎ»ÖÃ»æÖÆ ">"
+1545   2            MT_TFTLCD_Showstring(10,(24+AppMenuVair.CursorPos*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0)
+             -;
+1546   2          }
+1547   1          if(DisPlayDelayTim)
+1548   1          {
+1549   2            DisPlayDelayTim--; // µ¹¼ÆÊ±
+1550   2            if(DisPlayDelayTim == 0) // µ¹¼ÆÊ±½áÊø
+1551   2            {
+1552   3               OperStep = 0; // ·µ»ØÖ÷²Ëµ¥×´Ì¬
+1553   3               Refresh = 1;  // ´¥·¢Ö÷²Ëµ¥UIË¢ÐÂ
+1554   3               // Çå³ýÆÁÄ»ÉÏµÄÁÙÊ±ÏûÏ¢
+1555   3               MT_TFTLCD_Showstring(10,48,"                ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1556   3            }
+1557   2            return; // ÔÚÏûÏ¢ÏÔÊ¾ÆÚ¼ä£¬²»´¦ÀíÆäËûÂß¼­
+1558   2          }
+1559   1          AppMenuVair.TouchKeyNum = MT_GetKeyState();
+1560   1          if(AppMenuVair.TouchKeyNum == 0xff)
+1561   1          return;
+1562   1          pdVal=0xff;
+1563   1          switch(AppMenuVair.TouchKeyNum)
+1564   1          {
+1565   2            case BackLight_UP:
+1566   2            {
+1567   3                    pdVal = 11;
+1568   3            }
+1569   2            break;
+1570   2            case BackLight_DOWN:
+1571   2            {
+1572   3                    pdVal = 12;
+1573   3            }
+1574   2            break;
+1575   2            case BackLight_BACK:
+1576   2                    pdVal = 13;
+1577   2      
+1578   2            break;
+1579   2            case BackLight_ENTER:///goto password
+1580   2                    pdVal = 14;
+1581   2            break;                             
+1582   2          }
+1583   1          switch(OperStep)
+1584   1          {
+1585   2              // --- ×´Ì¬0: ä¯ÀÀÖ÷ÉèÖÃ²Ëµ¥ ---
+1586   2           case 0:
+1587   2           {
+1588   3              if(pdVal == 11) // ÏòÉÏ¼ü
+1589   3              {
+1590   4                 if(AppMenuVair.CursorPos == 0) 
+1591   4                    AppMenuVair.CursorPos = 3;
+1592   4                 AppMenuVair.CursorPos--;
+1593   4              }
+1594   3              if(pdVal == 12) // ÏòÏÂ¼ü
+1595   3              {
+1596   4                 AppMenuVair.CursorPos++;
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 28  
+
+1597   4                 if(AppMenuVair.CursorPos == 3) 
+1598   4                    AppMenuVair.CursorPos = 0;
+1599   4              }
+1600   3              if((pdVal == 13)||(pdVal == 14)) // ·µ»Ø¼ü»òÈ·ÈÏ¼ü
+1601   3              {
+1602   4                                        // ÇåÀíÖ÷²Ëµ¥UI
+1603   4                 MT_TFTLCD_Showstring(10,24,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1604   4                 MT_TFTLCD_Showstring(10,48,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1605   4                 MT_TFTLCD_Showstring(10,72,"                 ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1606   4      
+1607   4                 if(pdVal == 13) // Èç¹ûÊÇ·µ»Ø¼ü
+1608   4                 {
+1609   5                    App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);
+1610   5                 }
+1611   4                 else // Èç¹ûÊÇÈ·ÈÏ¼ü
+1612   4                 {
+1613   5                    OperStep = 1; // ½øÈë×Ó²Ëµ¥×´Ì¬
+1614   5                    // ¸ù¾ÝÖ÷¹â±êÎ»ÖÃ£¬»æÖÆ²»Í¬µÄ×Ó²Ëµ¥UI
+1615   5                    if(AppMenuVair.CursorPos == 0) // »Ö¸´³ö³§ÉèÖÃ
+1616   5                    {
+1617   6                       MT_TFTLCD_Showstring(10,48," Restore Settings?",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1618   6                    }
+1619   5                    else if(AppMenuVair.CursorPos == 1) // WG Êä³öÉèÖÃ
+1620   5                    {
+1621   6                       MT_TFTLCD_Showstring(10,24," WG Ouput?    ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1622   6                       MT_TFTLCD_Showstring(10,48,"   Open         ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1623   6                       MT_TFTLCD_Showstring(10,72,"   Close        ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1624   6                        // ¸ù¾Ýµ±Ç°ÏµÍ³²ÎÊý£¬³õÊ¼»¯×Ó²Ëµ¥¹â±êÎ»ÖÃ
+1625   6                       if(PARA_GET_PARA_SYSTEM_WG_SWITCH_STA)
+1626   6                       {
+1627   7                           AppMenuVair.CursorPos2 = 1;
+1628   7                       }
+1629   6                       else
+1630   6                       {
+1631   7                           AppMenuVair.CursorPos2 = 0;                                                                    
+             -    
+1632   7                       }                                                
+1633   6                       MT_TFTLCD_Showstring(10,(48+AppMenuVair.CursorPos2*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGH
+             -T,16,0);  //
+1634   6                    }
+1635   5                    else if(AppMenuVair.CursorPos == 2) // ModBus Êä³öÉèÖÃ
+1636   5                    {
+1637   6                        MT_TFTLCD_Showstring(10,24,"ModBus Output?",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //Ñ¡Ôñ
+             -Ôö¼ÓµÄÓÃ»§ÀàÐÍ        
+1638   6                        MT_TFTLCD_Showstring(10,48,"  Open       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1639   6                        MT_TFTLCD_Showstring(10,72,"  Close      ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1640   6                                    
+1641   6                        if(PARA_GET_PARA_SYSTEM_RS485_SWITCH_STA)
+1642   6                        {
+1643   7                           AppMenuVair.CursorPos2 = 1;
+1644   7                        }
+1645   6                        else
+1646   6                        {
+1647   7                           AppMenuVair.CursorPos2 = 0;                                                                    
+             -    
+1648   7                        }
+1649   6                           MT_TFTLCD_Showstring(10,(48+AppMenuVair.CursorPos2*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLI
+             -GHT,16,0);  // 
+1650   6                     }
+1651   5                    }
+1652   4                             return; // ÌáÇ°·µ»Ø£¬±ÜÃâÖ´ÐÐºóÐøµÄ¹â±êÖØ»æ
+1653   4                  }
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 29  
+
+1654   3                  // Èç¹û°´ÁËÉÏ/ÏÂ¼ü£¬ÔòÖØ»æÖ÷²Ëµ¥¹â±ê
+1655   3                  if(pdVal != 0xff)
+1656   3                  {
+1657   4                     MT_TFTLCD_Showstring(10,24,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  // 
+1658   4                     MT_TFTLCD_Showstring(10,44,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1659   4                     MT_TFTLCD_Showstring(10,64,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1660   4                     MT_TFTLCD_Showstring(10,84,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1661   4                     MT_TFTLCD_Showstring(10,104,"  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //        
+1662   4                     MT_TFTLCD_Showstring(10,(24+AppMenuVair.CursorPos*20),"> ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,
+             -16,0);  // 
+1663   4                  }
+1664   3                }
+1665   2                break;
+1666   2                // --- ×´Ì¬1: ÔÚ×Ó²Ëµ¥ÖÐ½øÐÐÉèÖÃ ---
+1667   2                case 1:
+1668   2                switch(AppMenuVair.CursorPos)
+1669   2                {
+1670   3                  case 0:
+1671   3                   if((pdVal == 13)||(pdVal == 14))
+1672   3                   {
+1673   4                      MT_TFTLCD_Showstring(10,24,"            ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //Ñ¡ÔñÔö¼
+             -ÓµÄÓÃ»§ÀàÐÍ
+1674   4                      MT_TFTLCD_Showstring(10,48,"            ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //
+1675   4                      MT_TFTLCD_Showstring(10,72,"            ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //       
+             - 
+1676   4                      if(pdVal == 13)
+1677   4                      {///·µ»ØÉèÖÃ²Ëµ¥½çÃæ
+1678   5                          OperStep = 0;
+1679   5                          Refresh = 1;                                                        
+1680   5                      }
+1681   4                      else if(pdVal == 14)
+1682   4                      {        //»Ö¸´³ö³§ÉèÖÃ        
+1683   5                         MT_TFTLCD_Showstring(10,48,"Update..",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //
+1684   5                         ParaToHistory();
+1685   5                         DisPlayDelayTim= 1000;                                                
+1686   5                      }
+1687   4                    }        
+1688   3                   break;
+1689   3                   case 1:
+1690   3                   case 2:
+1691   3                   {
+1692   4                    if(pdVal == 13)
+1693   4                    {///·µ»ØÉèÖÃ²Ëµ¥½çÃæ
+1694   5                       MT_TFTLCD_Showstring(10,48,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1695   5                       MT_TFTLCD_Showstring(10,72,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //     
+             -           
+1696   5                       OperStep = 0;
+1697   5                       Refresh = 1;                                                        
+1698   5                    }
+1699   4                    else if(pdVal == 14)
+1700   4                    {        //±£´æÊý¾Ý        
+1701   5                       MT_TFTLCD_Showstring(10,48,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1702   5                       MT_TFTLCD_Showstring(10,72,"             ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1703   5                       MT_TFTLCD_Showstring(10,48,"Update..",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //
+1704   5                       if(AppMenuVair.CursorPos == 1)
+1705   5                       {
+1706   6                         PARA_SET_PARA_SYSTEM_WG_SWITCH_STA(AppMenuVair.CursorPos2);
+1707   6                       }
+1708   5                       else if(AppMenuVair.CursorPos == 2)
+1709   5                       {
+1710   6                         PARA_SET_PARA_SYSTEM_RS485_SWITCH_STA(AppMenuVair.CursorPos2);
+1711   6                       }
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 30  
+
+1712   5                       ParaSaveAllVair();
+1713   5                       DisPlayDelayTim = 1000;                                                
+1714   5                     }    
+1715   4                     if((pdVal == 11) || (pdVal == 12))
+1716   4                     {                
+1717   5                        if(AppMenuVair.CursorPos2 == 0)
+1718   5                        {
+1719   6                          AppMenuVair.CursorPos2 = 1;
+1720   6                        }
+1721   5                        else
+1722   5                        AppMenuVair.CursorPos2 = 0;
+1723   5                        MT_TFTLCD_Showstring(10,48," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //
+1724   5                        MT_TFTLCD_Showstring(10,72," ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);  //                 
+             -                                               
+1725   5                        MT_TFTLCD_Showstring(10,(48+AppMenuVair.CursorPos2*20),">",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT
+             -,16,0);  //        
+1726   5                      }
+1727   4                    }
+1728   3                      break;
+1729   3                }
+1730   2                break;
+1731   2          }
+1732   1      }
+1733          
+1734          /**
+1735           * @brief  ÀúÊ·¼ÇÂ¼²Ëµ¥´¦Àíº¯Êý
+1736           */
+1737          static void App_Menu_History(void)
+1738          {
+1739   1        static unsigned char historyTotality;    // ´æ´¢ÒÑ±£´æµÄÀúÊ·¼ÇÂ¼×ÜÊý
+1740   1        static unsigned char historyCurrentID;   // µ±Ç°ÕýÔÚ²é¿´µÄ¼ÇÂ¼µÄÂß¼­ÐòºÅ (ÓÐÐ§Öµ´Ó1¿ªÊ¼)
+1741   1      
+1742   1        unsigned char idx;//
+1743   1        if(AppMenuVair.UiDisplay == TFTLCD_UI_INIT)
+1744   1          {
+1745   2            AppMenuVair.UiDisplay = TFTLCD_UI_NULL; // Çå³ýUIË¢ÐÂ±êÖ¾
+1746   2            // »æÖÆ²Ëµ¥±êÌâºÍËùÓÐ²Ëµ¥Ïî
+1747   2            MT_TFTLCD_Showstring(40,0, "HISTORY",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,24,0);
+1748   2             // ´Ó²ÎÊýÄ£¿é»ñÈ¡µ±Ç°ÒÑ±£´æµÄÀúÊ·¼ÇÂ¼×ÜÊý
+1749   2            historyTotality = PARA_GET_PARA_HISTORY_SUM;
+1750   2            if(historyTotality == 0)
+1751   2            {
+1752   3              // Èç¹ûÃ»ÓÐÈÎºÎ¼ÇÂ¼£¬ÔòÏÔÊ¾ÌáÊ¾ÐÅÏ¢²¢Ö±½Ó·µ»Ø
+1753   3              MT_TFTLCD_Showstring(10,44,"No Record  ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1754   3              return;
+1755   3            }
+1756   2      
+1757   2            // Èç¹ûÓÐ¼ÇÂ¼£¬Ôò»æÖÆUI¾²Ì¬ÎÄ±¾±êÇ©
+1758   2            MT_TFTLCD_Showstring(10,24,"ID:           ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1759   2            MT_TFTLCD_Showstring(10,44,"USER:         ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1760   2            MT_TFTLCD_Showstring(10,64,"Type:       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1761   2            MT_TFTLCD_Showstring(10,84,"Date:       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1762   2            MT_TFTLCD_Showstring(10,104,"Time:       ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1763   2      
+1764   2            // ³õÊ¼»¯×´Ì¬£¬×¼±¸ÏÔÊ¾µÚÒ»Ìõ¼ÇÂ¼
+1765   2            historyCurrentID = 1; // ´ÓÂß¼­ÉÏµÄµÚÒ»Ìõ¼ÇÂ¼¿ªÊ¼¿´
+1766   2            AppMenuVair.Refresh = 1; // ´¥·¢UIË¢ÐÂ
+1767   2          }
+1768   1          //UIË¢ÐÂ½çÃæ
+1769   1          if(AppMenuVair.Refresh)
+1770   1          {
+1771   2            AppMenuVair.Refresh = 0;
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 31  
+
+1772   2            idx = ParaGetHistoryVari(historyCurrentID);        
+1773   2            //=========================ÏÔÊ¾ÀúÊ·¼ÇÂ¼µÄÐòºÅ
+1774   2            AppMenuVair.DisplayDat[0] = '0' + historyCurrentID / 10;
+1775   2            AppMenuVair.DisplayDat[1] = '0' + historyCurrentID % 10;                
+1776   2            AppMenuVair.DisplayDat[2] = '/';                
+1777   2            AppMenuVair.DisplayDat[3] = '0' + historyTotality / 10;
+1778   2            AppMenuVair.DisplayDat[4] = '0' + historyTotality % 10;
+1779   2            AppMenuVair.DisplayDat[5] = 0;
+1780   2            MT_TFTLCD_Showstring(58,24,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);
+1781   2            //=========================ÏÔÊ¾ÀúÊ·¼ÇÂ¼µÄÐòºÅ
+1782   2            if(PARA_GET_HISTORYVAIR_USERID(idx) == 0)
+1783   2            {
+1784   3              AppMenuVair.DisplayDat[0] = 'I';
+1785   3              AppMenuVair.DisplayDat[1] = 'D';
+1786   3              AppMenuVair.DisplayDat[2] = ':';
+1787   3              AppMenuVair.DisplayDat[3] = '-';
+1788   3              AppMenuVair.DisplayDat[4] = '-';
+1789   3              AppMenuVair.DisplayDat[5] = 0;        
+1790   3            }
+1791   2            else
+1792   2            {
+1793   3              AppMenuVair.DisplayDat[0] = 'I';
+1794   3              AppMenuVair.DisplayDat[1] = 'D';
+1795   3              AppMenuVair.DisplayDat[2] = ':';
+1796   3              AppMenuVair.DisplayDat[3] = '0' + PARA_GET_HISTORYVAIR_USERID(idx) / 10;
+1797   3              AppMenuVair.DisplayDat[4] = '0' + PARA_GET_HISTORYVAIR_USERID(idx) % 10;
+1798   3              AppMenuVair.DisplayDat[5] = 0;                
+1799   3            }
+1800   2            MT_TFTLCD_Showstring(58,44,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0); 
+1801   2            //=========================ÏÔÊ¾±¨¾¯ÀàÐÍ
+1802   2            if(PARA_GET_HISTORYVAIR_TYPE(idx) == OPER_TYPE_OPEN_PASSWORD)
+1803   2            {//ÃÜÂë¿ªËø
+1804   3              MT_TFTLCD_Showstring(58,64,"Open By Code",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1805   3            }
+1806   2            else if(PARA_GET_HISTORYVAIR_TYPE(idx) == OPER_TYPE_OPEN_RFID)
+1807   2            {//RFID¿ªËø
+1808   3              MT_TFTLCD_Showstring(58,64,"Open By RFID",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1809   3            }
+1810   2            else if(PARA_GET_HISTORYVAIR_TYPE(idx) == OPER_TYPE_OPEN_KEY)
+1811   2            {//ÄÚ²¿°´¼ü
+1812   3              MT_TFTLCD_Showstring(58,64,"Open By Key ",MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);  //
+1813   3            }
+1814   2            //=========================ÏÔÊ¾ÈÕÆÚ
+1815   2            AppMenuVair.DisplayDat[0] = '0' + PARA_GET_HISTORYVAIR_YEAR(idx) / 16;
+1816   2            AppMenuVair.DisplayDat[1] = '0' + PARA_GET_HISTORYVAIR_YEAR(idx) % 16;                
+1817   2            AppMenuVair.DisplayDat[2] = '/';                        
+1818   2            AppMenuVair.DisplayDat[3] = '0' + PARA_GET_HISTORYVAIR_MONTH(idx) / 16;
+1819   2            AppMenuVair.DisplayDat[4] = '0' + PARA_GET_HISTORYVAIR_MONTH(idx) % 16;                
+1820   2            AppMenuVair.DisplayDat[5] = '/';                
+1821   2            AppMenuVair.DisplayDat[6] = '0' + PARA_GET_HISTORYVAIR_DAY(idx) / 16;
+1822   2            AppMenuVair.DisplayDat[7] = '0' + PARA_GET_HISTORYVAIR_DAY(idx) % 16;
+1823   2            AppMenuVair.DisplayDat[8] = 0;
+1824   2            MT_TFTLCD_Showstring(58,84,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0); 
+1825   2            //=========================ÏÔÊ¾Ê±¼ä
+1826   2            AppMenuVair.DisplayDat[0] = '0' + PARA_GET_HISTORYVAIR_HOUR(idx) / 16;
+1827   2            AppMenuVair.DisplayDat[1] = '0' + PARA_GET_HISTORYVAIR_HOUR(idx) % 16;                
+1828   2            AppMenuVair.DisplayDat[2] = ':';                
+1829   2            AppMenuVair.DisplayDat[3] = '0' + PARA_GET_HISTORYVAIR_MINUTE(idx) / 16;
+1830   2            AppMenuVair.DisplayDat[4] = '0' + PARA_GET_HISTORYVAIR_MINUTE(idx) % 16;
+1831   2            AppMenuVair.DisplayDat[5] = ':';                
+1832   2            AppMenuVair.DisplayDat[6] = '0' + PARA_GET_HISTORYVAIR_SEC(idx)  / 16;
+1833   2            AppMenuVair.DisplayDat[7] = '0' + PARA_GET_HISTORYVAIR_SEC(idx)  % 16;                
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 32  
+
+1834   2            AppMenuVair.DisplayDat[8] = 0;        
+1835   2            MT_TFTLCD_Showstring(58,104,AppMenuVair.DisplayDat,MENU_FONT_COLOR,COLOR_TFTLCD_BACKLIGHT,16,0);       
+             -  
+1836   2          }
+1837   1          AppMenuVair.TouchKeyNum = MT_GetKeyState();
+1838   1          if(AppMenuVair.TouchKeyNum == 0xff) return; // ÎÞ°´¼üÔò·µ»Ø
+1839   1          // ½«°´¼üÃ¶¾Ù×ª»»ÎªÄÚ²¿¹¦ÄÜÂë
+1840   1          AppMenuVair.pdVal = 0xff;
+1841   1          switch(AppMenuVair.TouchKeyNum)
+1842   1          {
+1843   2            case BackLight_UP: AppMenuVair.pdVal = 11; break;   // ÏòÉÏ
+1844   2            case BackLight_DOWN: AppMenuVair.pdVal = 12; break; // ÏòÏÂ
+1845   2            case BackLight_BACK:
+1846   2            {
+1847   3              MT_TFTLCD_BColorfill(0,0,LCD_Xend,LCD_Yend,COLOR_TFTLCD_BACKLIGHT);
+1848   3              App_Task_MenuToggle(MENU_MAINMENU,TFTLCD_UI_RECORER);        
+1849   3            }
+1850   2            break;                             
+1851   2          }
+1852   1          if(AppMenuVair.pdVal == 11) // Èç¹ûÊÇÏòÉÏ·­Ò³
+1853   1          {
+1854   2            historyCurrentID--; // Âß¼­ÐòºÅ¼õ1
+1855   2            if(historyCurrentID == 0) // Èç¹ûÐ¡ÓÚ1£¬ÔòÑ­»·µ½×îºóÒ»Ìõ
+1856   2            {
+1857   3              historyCurrentID = historyTotality;
+1858   3            }
+1859   2            AppMenuVair.Refresh = 1; // ´¥·¢UIË¢ÐÂ
+1860   2          }
+1861   1          if(AppMenuVair.pdVal == 12) // Èç¹ûÊÇÏòÏÂ·­Ò³
+1862   1          {
+1863   2            historyCurrentID++; // Âß¼­ÐòºÅ¼Ó1
+1864   2            if(historyCurrentID > historyTotality) // Èç¹û´óÓÚ×ÜÊý£¬ÔòÑ­»·µ½µÚÒ»Ìõ
+1865   2            {
+1866   3              historyCurrentID = 1;
+1867   3            }
+1868   2            AppMenuVair.Refresh = 1; // ´¥·¢UIË¢ÐÂ
+1869   2          }
+1870   1      }
+1871          /**
+1872           * @brief  ±£´æ¿ªËøµÄ·½Ê½
+1873           */
+1874          static void App_History_Write(unsigned char id,en_historyType type)
+1875          {
+1876   1          // 1. ¶¨ÒåÒ»¸öÓÃÓÚ´æ´¢ÐÂ¼ÇÂ¼µÄÁÙÊ±½á¹¹Ìå±äÁ¿
+1877   1          str_historyVari write_HistoryVari;
+1878   1          // 2. ´ÓDS1302Ð¾Æ¬»ñÈ¡µ±Ç°¾«È·µÄÈÕÆÚºÍÊ±¼ä
+1879   1          MT_DS1302_Read_Time();
+1880   1          // 3. ½«ËùÓÐÐÅÏ¢´ò°üµ½½á¹¹ÌåÖÐ
+1881   1          write_HistoryVari.userid = id; // ¼ÇÂ¼ÓÃ»§ID
+1882   1          write_HistoryVari.year = TIME_Task.year;   // ¼ÇÂ¼Äê
+1883   1          write_HistoryVari.month = TIME_Task.month; // ¼ÇÂ¼ÔÂ
+1884   1          write_HistoryVari.day = TIME_Task.day;     // ¼ÇÂ¼ÈÕ
+1885   1          write_HistoryVari.hour = TIME_Task.hour;   // ¼ÇÂ¼Ê±
+1886   1          write_HistoryVari.minute = TIME_Task.minute; // ¼ÇÂ¼·Ö
+1887   1          write_HistoryVari.sec = TIME_Task.second;  // ¼ÇÂ¼Ãë
+1888   1          write_HistoryVari.type = type;                  // ¼ÇÂ¼²Ù×÷ÀàÐÍ
+1889   1      
+1890   1          // 4. µ÷ÓÃµ×²ãµÄ²ÎÊý±£´æº¯Êý£¬½«ÕâÌõÐÂ¼ÇÂ¼Ð´Èëµ½EEPROM
+1891   1          ParaSaveHistoryVair(write_HistoryVari);
+1892   1      }
+
+
+C51 COMPILER V9.59.0.0   APP_TASK                                                          05/13/2026 22:47:37 PAGE 33  
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =  12640    ----
+   CONSTANT SIZE    =   1011    ----
+   XDATA SIZE       =    107      39
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      2      52
+   IDATA SIZE       =   ----       3
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

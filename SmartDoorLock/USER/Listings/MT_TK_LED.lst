@@ -1,0 +1,164 @@
+C51 COMPILER V9.59.0.0   MT_TK_LED                                                         05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MT_TK_LED
+OBJECT MODULE PLACED IN .\Objects\MT_TK_LED.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\MT\MT_TK_LED.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\MT_TK_LED.lst) TABS(2) OBJECT(.\Objects\MT_TK_LED.o
+                    -bj)
+
+line level    source
+
+   1          #include "MT_TK_LED.H"
+   2          #include "HAL_BACKLIGHT.H"
+   3          #include "HAL_TOUCHKEY.H"
+   4          #include "HAL_TFTLCD_SPI.H"
+   5          #include "MT_TFTLCD.H"
+   6          #include "HAL_PWMA_HORN.H"
+   7          typedef struct
+   8          {
+   9            unsigned char shakeTim[TOUCH_KEY_SUM];//按键按下的延时计数器
+  10            unsigned char keyDat;  //保存按键值，0xFF表示没有按键按下；
+  11            unsigned int KeyBackLightTime;//按键背光灯持续时间
+  12            unsigned int TftlcdBackTime;//TFT背光灯持续时间
+  13          }MT_BackLight_Typedef;
+  14          
+  15          MT_BackLight_Typedef xdata MT_TK_LED;
+  16          void MT_TKLED_Init()
+  17          {
+  18   1        unsigned char TKI;
+  19   1        for(TKI=0;TKI<TOUCH_KEY_SUM;TKI++)
+  20   1        {
+  21   2          MT_TK_LED.shakeTim[TKI]=0;
+  22   2        }
+  23   1        MT_TK_LED.keyDat=0xFF;
+  24   1        MT_TK_LED.KeyBackLightTime=MT_KeyBackLigntTime;
+  25   1        MT_TK_LED.TftlcdBackTime=2000;
+  26   1      }
+  27          /*
+  28          *函数将通道值转化为对应的数值
+  29          */
+  30          unsigned char MT_GetkeyState(unsigned char keynum)
+  31          {
+  32   1        unsigned int returnDat;
+  33   1        returnDat=0xFF;//0xFF默认按键没有按下
+  34   1        switch(keynum)
+  35   1        {
+  36   2          case channel_0:returnDat=BackLight_BACK;
+  37   2            break;
+  38   2          case channel_1:returnDat=BackLight_NUM9;
+  39   2            break;
+  40   2          case channel_2:returnDat=BackLight_DOWN;
+  41   2            break;
+  42   2          case channel_3:returnDat=BackLight_ENTER;
+  43   2            break;
+  44   2          case channel_4:returnDat=BackLight_NUM6;
+  45   2            break;
+  46   2          case channel_5:returnDat=BackLight_NUM3;
+  47   2            break;
+  48   2          case channel_6:returnDat=BackLight_NUM4;  
+  49   2            break;
+  50   2          case channel_7:returnDat=BackLight_NUM7;
+  51   2            break;
+  52   2          case channel_8:returnDat=BackLight_UP;
+  53   2            break;
+C51 COMPILER V9.59.0.0   MT_TK_LED                                                         05/13/2026 22:47:36 PAGE 2   
+
+  54   2          case channel_9:returnDat=BackLight_Ring;
+  55   2            break;
+  56   2          case channel_10:returnDat=BackLight_NUM5;
+  57   2            break;
+  58   2          case channel_11:returnDat=BackLight_NUM2;
+  59   2            break;
+  60   2          case channel_12:returnDat=BackLight_Delete;
+  61   2            break;
+  62   2          case channel_13:returnDat=BackLight_NUM1;
+  63   2            break;
+  64   2          case channel_14:returnDat=BackLight_NUM0;
+  65   2            break;
+  66   2          case channel_15:returnDat=BackLight_NUM8;
+  67   2            break;
+  68   2        }
+  69   1        return returnDat;
+  70   1      }
+  71          void MT_TKLED_pro()
+  72          {
+  73   1        unsigned char xdata TKBuff;
+  74   1        unsigned char xdata TKj;
+  75   1        for(TKj=0;TKj<TOUCH_KEY_SUM;TKj++)
+  76   1        {
+  77   2          if(HAL_TouchKey_GetState(TKj))//判断通道X是否按下
+  78   2          {
+  79   3            if(MT_TK_LED.shakeTim[TKj]<MT_DelayTime)
+  80   3            {
+  81   4              MT_TK_LED.shakeTim[TKj]++;
+  82   4              if(MT_TK_LED.shakeTim[TKj]==MT_DelayTime)
+  83   4              {
+  84   5                TKBuff=MT_GetkeyState(TKj);//将通道值转换为按键板上对应的值
+  85   5                HAL_BackLight_Control(TKBuff);//控制触摸按键背光灯
+  86   5                HAL_PWMA_main(HAL_horn_sound_Di);//控制喇叭
+  87   5                if(MT_TK_LED.TftlcdBackTime==0)
+  88   5                {
+  89   6                  MT_TK_LED.keyDat=0xff;
+  90   6                  HAL_TFTLCD_BL_Control(HAL_TFTLCD_ENABLE);//打开背光灯
+  91   6                }
+  92   5                else
+  93   5                {
+  94   6                  MT_TK_LED.keyDat=TKBuff;
+  95   6                }
+  96   5              }
+  97   4            }
+  98   3            MT_TK_LED.KeyBackLightTime=MT_KeyBackLigntTime;
+  99   3            MT_TK_LED.TftlcdBackTime=MT_TFTLcdBackTime;
+ 100   3          }
+ 101   2          else
+ 102   2            MT_TK_LED.shakeTim[TKj]=0;
+ 103   2        }
+ 104   1        
+ 105   1        if(MT_TK_LED.TftlcdBackTime)
+ 106   1        {
+ 107   2          MT_TK_LED.TftlcdBackTime--;
+ 108   2        }
+ 109   1        else
+ 110   1          HAL_TFTLCD_BL_Control(HAL_TFTLCD_DISABLE);
+ 111   1        
+ 112   1        if(MT_TK_LED.KeyBackLightTime)
+ 113   1          MT_TK_LED.KeyBackLightTime--;
+ 114   1        else
+ 115   1          HAL_BackLight_All_OFF();
+C51 COMPILER V9.59.0.0   MT_TK_LED                                                         05/13/2026 22:47:36 PAGE 3   
+
+ 116   1      }
+ 117          //获取按键状态
+ 118          unsigned char  MT_GetKeyState()
+ 119          {
+ 120   1        unsigned char returnKeyDat;
+ 121   1        returnKeyDat = MT_TK_LED.keyDat;
+ 122   1        MT_TK_LED.keyDat = 0xFF;//将按键状态重置为0xFF，表示没有按键按下
+ 123   1        return returnKeyDat;
+ 124   1      }
+ 125          //获取背光灯时间
+ 126          unsigned int Mt_Key_GetBackLightTim()
+ 127          { 
+ 128   1         return MT_TK_LED.TftlcdBackTime;
+ 129   1      }
+ 130          //设置背光灯时间
+ 131          void MT_Key_SetBacklighttime(unsigned int time_number)
+ 132          {
+ 133   1        MT_TK_LED.TftlcdBackTime=time_number;
+ 134   1        HAL_TFTLCD_BL_Control(HAL_TFTLCD_ENABLE);
+ 135   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    446    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     21       2
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

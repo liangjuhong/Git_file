@@ -1,0 +1,100 @@
+version: "4.1"
+name: SmartDoorLock
+type: C51
+deviceName: null
+packDir: null
+srcDirs: []
+virtualFolder:
+  name: <virtual_root>
+  files: []
+  folders:
+    - name: User
+      files:
+        - path: STARTUP.A51
+        - path: main.c
+      folders: []
+    - name: HAL
+      files:
+        - path: ../HAL/HAL_Backlight.c
+        - path: ../HAL/HAL_Task.c
+        - path: ../HAL/HAL_Timer4.c
+        - path: ../HAL/HAL_GPIO.c
+        - path: ../HAL/HAL_TouchKey.c
+        - path: ../HAL/HAL_TFTLCD_SPI.c
+        - path: ../HAL/HAL_DS1302.c
+        - path: ../HAL/HAL_PWMA_horn.c
+        - path: ../HAL/HAL_PWMB_RFID.c
+        - path: ../HAL/HAL_Uart.c
+        - path: ../HAL/HAL_RS485.c
+        - path: ../HAL/HAL_Wiegand.c
+        - path: ../HAL/HAL_Wiegand_Receive.c
+        - path: ../HAL/HAL_LOCK.c
+        - path: ../HAL/HAL_IIC.c
+      folders: []
+    - name: MT
+      files:
+        - path: ../MT/MT_Task.c
+        - path: ../MT/MT_TK_LED.c
+        - path: ../MT/MT_TFTLCD.c
+        - path: ../MT/MT_DS1302.c
+        - path: ../MT/MT_PWMA_horn.c
+        - path: ../MT/MT_PWMB_RFID.c
+        - path: ../MT/MT_ModBus.c
+        - path: ../MT/MT_IIC_AT24C128.c
+      folders: []
+    - name: APP
+      files:
+        - path: ../APP/APP_Task.c
+        - path: ../APP/para.c
+      folders: []
+    - name: OS
+      files:
+        - path: ../OS/OS_System.c
+      folders: []
+    - name: NOTE
+      files:
+        - path: ../NOTE/note.c
+      folders: []
+dependenceList: []
+outDir: build
+miscInfo:
+  uid: cc616f739c5e36545fcea64c73a4e564
+targets:
+  Target 1:
+    cppPreprocessAttrs:
+      defineList: []
+      incList:
+        - ../../../../KEIL_Liang/keil_C51/C51/INC/STC
+        - ../APP
+        - ../HAL
+        - ../MT
+        - ../NOTE
+        - ../OS
+        - .
+      libList: []
+    excludeList: []
+    settings: {}
+    toolchain: Keil_C51
+    toolchainConfigMap:
+      Keil_C51:
+        options:
+          version: 2
+          afterBuildTasks: []
+          asm-compiler: {}
+          beforeBuildTasks: []
+          c/cpp-compiler:
+            optimization-level: level-8
+            optimization-type: SPEED
+          global:
+            ram-mode: SMALL
+            rom-mode: LARGE
+          linker:
+            misc-controls: ""
+            output-format: elf
+            remove-unused: true
+    uploadConfigMap:
+      Custom:
+        bin: ""
+        commandLine: ""
+        eraseChipCommand: ""
+    uploader: Custom

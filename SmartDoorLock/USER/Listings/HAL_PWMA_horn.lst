@@ -1,0 +1,154 @@
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_PWMA_HORN
+OBJECT MODULE PLACED IN .\Objects\HAL_PWMA_horn.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_PWMA_horn.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\AP
+                    -P;..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_PWMA_horn.lst) TABS(2) OBJECT(.\Objects\HA
+                    -L_PWMA_horn.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_PWMA_HORN.H"
+   3          #define HAL_PWMA_ENPort P70 //高电平功放芯片工作
+   4          #define HAL_PWMA_ARR_TIME_1KHZ MAIN_Fosc/1000
+   5          //DI的频率
+   6          #define HAL_PWMA_Sound_DI MAIN_Fosc/800
+   7          //DONG的频率
+   8          #define HAL_PWMA_Sound_DONG MAIN_Fosc/650
+   9          
+  10          HAL_HornSound_struct xdata HAL_HornSound_task;
+  11          void HAL_PWMA_Config()
+  12          {
+  13   1        IP2 |= 0x04;
+  14   1        IP2H|= 0x04;
+  15   1        PWMA_PS &= 0xFC;
+  16   1        PWMA_PS |= 0x01;//高级PWM通道1输出脚切换为：PWM1P:P2.0 PWM1N:P2.1
+  17   1        
+  18   1        PWMA_CCER1 &=~0x05;//配置模式CCMR之前先清零通道使能CCER
+  19   1        PWMA_CCMR1|=0x68;//0110 1000配置为PWM模式1，开启PWMA_CCR1寄存器的预装载功能
+  20   1        PWMA_CCER1|=0x05;//开启OC1,OC1N比较输出
+  21   1        
+  22   1        PWMA_ENO |=0x03;//PWM1输出使能
+  23   1        PWMA_CR1 |=0x80;//允许PWMA_ARR寄存器由预装载缓冲器缓冲
+  24   1        
+  25   1        PWMA_PSCRH=0x00;//预分频器不分频
+  26   1        PWMA_PSCRL=0X00;
+  27   1        
+  28   1        PWMA_ARRH=HAL_PWMA_ARR_TIME_1KHZ>>8;//配置PWMA的周期
+  29   1        PWMA_ARRL=HAL_PWMA_ARR_TIME_1KHZ;
+  30   1        
+  31   1        PWMA_CCR1H=(HAL_PWMA_ARR_TIME_1KHZ/4)>>8;//配置PWMA的占空比
+  32   1        PWMA_CCR1L=HAL_PWMA_ARR_TIME_1KHZ/4;
+  33   1        
+  34   1        PWMA_BKR |=0x80;//使能主输出功能
+  35   1        PWMA_DTR =0x0C;//设置死区时间
+  36   1        PWMA_IER |=0x01;//开启PWMA中断
+  37   1        EA=1;
+  38   1      }
+  39          void HAL_PWMA_Init()
+  40          {
+  41   1        HAL_PWMA_Config();
+  42   1        HAL_PWMA_ENPort=0;
+  43   1        HAL_HornSound_task.soundSta=HAL_horn_sound_free;
+  44   1        HAL_HornSound_task.Time_cycle=HAL_HornSound_Time_Cycle;
+  45   1        HAL_HornSound_task.frequency=HAL_PWMA_ARR_TIME_1KHZ;
+  46   1        HAL_HornSound_task.duty=HAL_PWMA_ARR_TIME_1KHZ>>4;
+  47   1        HAL_HornSound_task.DiDong_time=0;
+  48   1      }
+  49          void HAL_PWMA_main(HAL_HornSound_enum Soundtype)
+  50          {
+  51   1        switch(Soundtype)
+  52   1        {
+  53   2          case HAL_horn_sound_free:
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 2   
+
+  54   2            HAL_HornSound_task.soundSta=HAL_horn_sound_free;
+  55   2            break;
+  56   2          case HAL_horn_sound_Di:
+  57   2            HAL_HornSound_task.soundSta=HAL_horn_sound_Di;
+  58   2            HAL_HornSound_task.Time_cycle=HAL_HornSound_Time_Cycle;
+  59   2            PWMA_ARRH=HAL_HornSound_task.frequency>>8;//配置PWMA的周期
+  60   2            PWMA_ARRL=HAL_HornSound_task.frequency;
+  61   2        
+  62   2            PWMA_CCR1H=HAL_HornSound_task.duty>>8;//配置PWMA的占空比
+  63   2            PWMA_CCR1L=HAL_HornSound_task.duty;
+  64   2      
+  65   2            HAL_PWMA_ENPort=1;
+  66   2            PWMA_CR1 |=0x01;
+  67   2            break;
+  68   2          case HAL_horn_sound_DiDong:
+  69   2            HAL_HornSound_task.soundSta=HAL_horn_sound_DiDong;
+  70   2            PWMA_ARRH=HAL_PWMA_Sound_DI>>8;//配置PWMA的周期
+  71   2            PWMA_ARRL=HAL_PWMA_Sound_DI;
+  72   2        
+  73   2            PWMA_CCR1H=(HAL_PWMA_Sound_DI>>4)>>8;//配置PWMA的占空比
+  74   2            PWMA_CCR1L=(HAL_PWMA_Sound_DI>>4);
+  75   2            HAL_PWMA_ENPort=1;
+  76   2            PWMA_CR1 |=0x01;
+  77   2            break;
+  78   2        }
+  79   1      }
+  80          void HAL_PWMA_Interrupt() interrupt 26
+  81          {
+  82   1        if(PWMA_SR1&0x01)
+  83   1        {
+  84   2          PWMA_SR1 &=~0x01;
+  85   2          switch(HAL_HornSound_task.soundSta)
+  86   2          {
+  87   3            case HAL_horn_sound_free:
+  88   3              break;
+  89   3            case HAL_horn_sound_Di:
+  90   3              if(HAL_HornSound_task.Time_cycle)
+  91   3                HAL_HornSound_task.Time_cycle--;
+  92   3              else
+  93   3              {
+  94   4                HAL_PWMA_ENPort=0;
+  95   4                PWMA_CR1 &=0xFE;
+  96   4                HAL_HornSound_task.soundSta=HAL_horn_sound_free;
+  97   4              }
+  98   3              break;
+  99   3            case HAL_horn_sound_DiDong:
+ 100   3              HAL_HornSound_task.DiDong_time++;
+ 101   3              if(HAL_HornSound_task.DiDong_time==500)
+ 102   3              {
+ 103   4                HAL_PWMA_ENPort=0;
+ 104   4                PWMA_CR1 &=0xFE;
+ 105   4                PWMA_ARRH=HAL_PWMA_Sound_DONG>>8;//配置PWMA的周期
+ 106   4                PWMA_ARRL=HAL_PWMA_Sound_DONG;
+ 107   4            
+ 108   4                PWMA_CCR1H=(HAL_PWMA_Sound_DONG>>4)>>8;//配置PWMA的占空比
+ 109   4                PWMA_CCR1L=(HAL_PWMA_Sound_DONG>>4);
+ 110   4                HAL_PWMA_ENPort=1;
+ 111   4                PWMA_CR1 |=0x01;
+ 112   4              }
+ 113   3              if(HAL_HornSound_task.DiDong_time>1000)
+ 114   3              {
+ 115   4                HAL_HornSound_task.DiDong_time=0;
+C51 COMPILER V9.59.0.0   HAL_PWMA_HORN                                                     05/13/2026 22:47:35 PAGE 3   
+
+ 116   4                HAL_PWMA_ENPort=0;
+ 117   4                PWMA_CR1 &=0xFE;
+ 118   4                HAL_HornSound_task.soundSta=HAL_horn_sound_free;
+ 119   4              }
+ 120   3              break;
+ 121   3            default:
+ 122   3              break;
+ 123   3          }
+ 124   2        }
+ 125   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    416    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      9    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

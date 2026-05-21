@@ -1,0 +1,275 @@
+C51 COMPILER V9.59.0.0   HAL_PWMB_RFID                                                     05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_PWMB_RFID
+OBJECT MODULE PLACED IN .\Objects\HAL_PWMB_RFID.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_PWMB_RFID.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\AP
+                    -P;..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_PWMB_RFID.lst) TABS(2) OBJECT(.\Objects\HA
+                    -L_PWMB_RFID.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_PWMB_RFID.H"
+   3          #include "string.h"
+   4          #define STATE_BASE  0  /* 基点检测状态（等待有效起始信号）*/
+   5          #define STATE_DATA  1  /* 数据采集状态（正在解析数据流）*/
+   6          #define HAL_RFIF_OUT P22
+   7          #define HAL_Timer0_125KHZ (65536-MAIN_Fosc/250000L)
+   8          HAL_RFID_TaskTypedef xdata RFID_Task;
+   9          static void Hal_PWMB_RFID_DatResetState(void);
+  10          static void Hal_PWMB_RFID_Process(unsigned char input);
+  11          static unsigned int Hal_PWMB_Signal_Analysis(unsigned int cnt, unsigned char is_falling);
+  12          void HAL_PWMB_RFID_Init()
+  13          {
+  14   1        HAL_Timer0_Init();
+  15   1        HAL_PWMB_Config();
+  16   1        HAL_RFIF_OUT=1;
+  17   1        RFID_Task.last_capture=0;      // 上次捕获的计数器值
+  18   1        RFID_Task.current_capture=0;
+  19   1        RFID_Task.state=STATE_BASE;       //RFID解析状态
+  20   1        RFID_Task.count_256=0;    //连续256μs脉冲计数器（用于处理空跳）  
+  21   1        RFID_Task.rfData_high_Low=0;    //检测的有效数据   有效取值0-1； 0xFF表示无效数据
+  22   1        Hal_PWMB_RFID_DatResetState();
+  23   1      }
+  24          //定时器0用于产生125kHZ频率
+  25          void HAL_Timer0_Init()
+  26          {
+  27   1        TMOD &=0xF0;//定时器0模式0
+  28   1        TH0=HAL_Timer0_125KHZ>>8;
+  29   1        TL0=HAL_Timer0_125KHZ;
+  30   1        AUXR|=0x80;//1T模式
+  31   1        INTCLKO|=0x01;//使能P3.5口的定时器0时钟输出功能
+  32   1        TR0=1;
+  33   1      }
+  34          void HAL_PWMB_Config()
+  35          {
+  36   1        PWMB_CCER2=0;//配置通道模式前应该先关闭通道使能
+  37   1        PWMB_CCMR3=0x01;//IC7映射在TI7FP7上
+  38   1        PWMB_CCMR4=0x02;//IC8映射在TI7FP8上
+  39   1        PWMB_CCER2|=0x31;//使能CC7,CC8捕获功能，CC7捕获上升沿，CC8捕获下降沿
+  40   1        
+  41   1        PWMB_PSCRH=0;
+  42   1        PWMB_PSCRL=0x27;//预分频为（39+1） 40000000/40=1MHZ
+  43   1        
+  44   1        PWMB_IER|=0x18;//允许通道7，8捕获中断
+  45   1        PWMB_CR1|=0x01;//使能PWMB计数器
+  46   1        EA=1;
+  47   1      }
+  48          static void Hal_PWMB_RFID_DatResetState(void)
+  49          {
+  50   1        RFID_Task.current_state=STATE_HEADER_DETECT;
+  51   1        RFID_Task.header_counter=0;
+  52   1        RFID_Task.data_position=0;
+  53   1        RFID_Task.row_parity_sum=0;
+C51 COMPILER V9.59.0.0   HAL_PWMB_RFID                                                     05/13/2026 22:47:35 PAGE 2   
+
+  54   1        memset(RFID_Task.col_parity_sum,0,sizeof(RFID_Task.col_parity_sum));
+  55   1      }
+  56          //接收RFID数据
+  57          static void Hal_PWMB_RFID_Process(unsigned char input)
+  58          {
+  59   1       static unsigned char xdata row=0;  /* 当前数据位所在行(0-10) */
+  60   1       static unsigned char xdata col=0;  /* 当前数据位所在列(0-4) */
+  61   1        unsigned char xdata bit_pos; /* 在rfid_tag数据数组中的绝对位置(0-39) */
+  62   1        if(input==0xFF)//数据无效
+  63   1        {
+  64   2          Hal_PWMB_RFID_DatResetState();
+  65   2          return;
+  66   2        }
+  67   1        switch (RFID_Task.current_state)
+  68   1        {//检测9个起始位
+  69   2          case STATE_HEADER_DETECT:
+  70   2          {
+  71   3            if(input==1)
+  72   3            {
+  73   4              RFID_Task.header_counter++;
+  74   4              if(RFID_Task.header_counter>=9)
+  75   4              {
+  76   5                RFID_Task.current_state=STATE_DATA_DETECT;//数据解析状态
+  77   5                RFID_Task.data_position=0;
+  78   5                memset(RFID_Task.rfid_tag,0,sizeof(RFID_Task.rfid_tag));
+  79   5              }
+  80   4            }
+  81   3            else
+  82   3            {
+  83   4              RFID_Task.header_counter=0;
+  84   4            }
+  85   3            break;
+  86   3          }
+  87   2          case STATE_DATA_DETECT:
+  88   2          {
+  89   3            row=RFID_Task.data_position/5;
+  90   3            col=RFID_Task.data_position%5;
+  91   3            if(row<10)
+  92   3            {
+  93   4              if(col<4)
+  94   4              {
+  95   5                bit_pos=row*4+col;
+  96   5                if(input==1)
+  97   5                {
+  98   6                  RFID_Task.rfid_tag[bit_pos/8]|=(1<<(7-(bit_pos%8)));
+  99   6                }
+ 100   5                RFID_Task.row_parity_sum+=input;//行校验累加器累加
+ 101   5                RFID_Task.col_parity_sum[col]+=input;//列校验累加器累加
+ 102   5              }
+ 103   4              if(col==4)//行校验位
+ 104   4              { 
+ 105   5                if((RFID_Task.row_parity_sum%2)!=input)
+ 106   5                {
+ 107   6                  Hal_PWMB_RFID_DatResetState();
+ 108   6                  return;
+ 109   6                }
+ 110   5                RFID_Task.row_parity_sum=0;//行校验累加器清零
+ 111   5              }
+ 112   4            }
+ 113   3            if(row==10)//列校验
+ 114   3            {
+ 115   4              if(col<4)
+C51 COMPILER V9.59.0.0   HAL_PWMB_RFID                                                     05/13/2026 22:47:35 PAGE 3   
+
+ 116   4              {
+ 117   5                if((RFID_Task.col_parity_sum[col]%2)!=input)
+ 118   5                {
+ 119   6                  Hal_PWMB_RFID_DatResetState();
+ 120   6                  return;
+ 121   6                }
+ 122   5              }
+ 123   4              if(col==4)
+ 124   4              {
+ 125   5                memset(RFID_Task.col_parity_sum,0,sizeof(RFID_Task.col_parity_sum));//列校验累加器清零
+ 126   5                if(input!=0)
+ 127   5                {
+ 128   6                  Hal_PWMB_RFID_DatResetState();
+ 129   6                  return;
+ 130   6                }
+ 131   5              }
+ 132   4            }
+ 133   3            RFID_Task.data_position++;
+ 134   3            if(RFID_Task.data_position>=55)
+ 135   3            {
+ 136   4              RFID_Task.current_state=STATE_FINISH;//数据接收完成
+ 137   4              return;
+ 138   4            }
+ 139   3            break;
+ 140   3          }
+ 141   2          default:
+ 142   2            break;
+ 143   2        }
+ 144   1      }
+ 145          //0xFF表示数据无效,0xFE表示空跳
+ 146          //#define TIME_512_MIN 435
+ 147          //#define TIME_512_MAX 588
+ 148          //#define TIME_256_MIN 186
+ 149          //#define TIME_256_MAX 326
+ 150          //分析信号
+ 151          static unsigned int Hal_PWMB_Signal_Analysis(unsigned int cnt, unsigned char is_falling)
+ 152          {
+ 153   1        if(RFID_Task.state==STATE_BASE)//等待有效起始信号
+ 154   1        {
+ 155   2          if(cnt>=TIME_512_MIN&&cnt<=TIME_512_MAX)//因为EM4100的停止位是0，所以开始时有一个512的信号
+ 156   2          {
+ 157   3            RFID_Task.state=STATE_DATA;
+ 158   3            RFID_Task.count_256=0;
+ 159   3          }
+ 160   2          else
+ 161   2          {
+ 162   3            return 0xFE;//表示无效数据
+ 163   3          }
+ 164   2        }
+ 165   1      
+ 166   1          if(cnt<TIME_256_MIN|| cnt>TIME_512_MAX)
+ 167   1          {
+ 168   2            RFID_Task.state=STATE_BASE;
+ 169   2            return 0xFF;//表示无效数据
+ 170   2          }
+ 171   1          if(cnt>TIME_512_MIN&&cnt<TIME_512_MAX)//完整有效数据
+ 172   1          {
+ 173   2            return is_falling?1:0;
+ 174   2          }
+ 175   1          if(cnt>=TIME_256_MIN&&cnt<=TIME_256_MAX)//空跳
+ 176   1          {
+ 177   2            RFID_Task.count_256++;
+C51 COMPILER V9.59.0.0   HAL_PWMB_RFID                                                     05/13/2026 22:47:35 PAGE 4   
+
+ 178   2            if(RFID_Task.count_256%2==1)
+ 179   2              return 0xFE;//表示空跳
+ 180   2            if(RFID_Task.count_256%2==0)
+ 181   2            {
+ 182   3              RFID_Task.count_256=0;
+ 183   3              return is_falling?1:0;
+ 184   3            }
+ 185   2          }
+ 186   1          else
+ 187   1          {
+ 188   2            RFID_Task.state=STATE_BASE;
+ 189   2            RFID_Task.count_256=0;
+ 190   2          }
+ 191   1          return 0xFF;//表示无效数据
+ 192   1      }
+ 193          void Hal_PWMB_RFID_Pro()
+ 194          {
+ 195   1        if((RFID_Task.rfData_high_Low==1)||(RFID_Task.rfData_high_Low==0)||(RFID_Task.rfData_high_Low==0xFF))
+ 196   1        {
+ 197   2          Hal_PWMB_RFID_Process(RFID_Task.rfData_high_Low);
+ 198   2          RFID_Task.rfData_high_Low=0xFE;//表示空跳
+ 199   2        }
+ 200   1      }
+ 201          unsigned char Hal_PWMB_GetRfidData(unsigned char *dat)
+ 202          {
+ 203   1        unsigned char xdata i;
+ 204   1        if(RFID_Task.current_state==STATE_FINISH)
+ 205   1        {
+ 206   2          for(i=0;i<5;i++)
+ 207   2          {
+ 208   3            *dat=RFID_Task.rfid_tag[i];
+ 209   3            dat++;
+ 210   3          } 
+ 211   2          Hal_PWMB_RFID_DatResetState();
+ 212   2          return 1;//表示成功
+ 213   2        }
+ 214   1        return 0;//表示无效数据
+ 215   1      }
+ 216          void HAL_PWMB_Interrupt() interrupt 27
+ 217          {
+ 218   1        unsigned int xdata cnt;
+ 219   1        if(PWMB_SR1&0x08)//判断通道7是否中断
+ 220   1        {
+ 221   2          PWMB_SR1&=~0x08;
+ 222   2          RFID_Task.current_capture=PWMB_CCR7;
+ 223   2          if(RFID_Task.current_capture>=RFID_Task.last_capture)
+ 224   2            cnt=RFID_Task.current_capture-RFID_Task.last_capture;
+ 225   2          else
+ 226   2            cnt=RFID_Task.current_capture+65536-RFID_Task.last_capture;
+ 227   2          RFID_Task.last_capture=RFID_Task.current_capture;
+ 228   2          RFID_Task.rfData_high_Low=Hal_PWMB_Signal_Analysis(cnt,1);//判断是否是上升沿
+ 229   2        }
+ 230   1        if(PWMB_SR1&0x10)//判断通道8是否中断
+ 231   1        {
+ 232   2          PWMB_SR1&=~0x10;
+ 233   2          RFID_Task.current_capture=PWMB_CCR8;
+ 234   2          if(RFID_Task.current_capture>=RFID_Task.last_capture)
+ 235   2            cnt=RFID_Task.current_capture - RFID_Task.last_capture;
+ 236   2          else
+ 237   2            cnt=RFID_Task.current_capture+65536-RFID_Task.last_capture;
+ 238   2          RFID_Task.last_capture=RFID_Task.current_capture;
+ 239   2          RFID_Task.rfData_high_Low=Hal_PWMB_Signal_Analysis(cnt,0);//判断是否是下降沿
+C51 COMPILER V9.59.0.0   HAL_PWMB_RFID                                                     05/13/2026 22:47:35 PAGE 5   
+
+ 240   2        }
+ 241   1      
+ 242   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    969    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     23       4
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

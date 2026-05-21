@@ -1,0 +1,198 @@
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_TOUCHKEY
+OBJECT MODULE PLACED IN .\Objects\HAL_TouchKey.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_TouchKey.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP
+                    -;..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_TouchKey.lst) TABS(2) OBJECT(.\Objects\HAL_
+                    -TouchKey.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_TOUCHKEY.H"
+   3          unsigned int code DIFF[]={5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 50
+             -00, 5000, 5000};//16个通道差值
+   4          typedef struct
+   5          {
+   6            unsigned char zero_Flag;//零点标志位,1则代表已完成零度读取
+   7            unsigned char zero_cnt;//零点计数
+   8            unsigned char ReadTouchkeyok;//扫描16个通道完成标志位
+   9            unsigned char ScanFreq;//按键扫描次数阈值
+  10            unsigned int TK_cnt[HAL_Touchkey_SUM];//存储按键实时数值
+  11            unsigned int TK_zero[HAL_Touchkey_SUM];//存储零点数值
+  12            unsigned int TK_differ[HAL_Touchkey_SUM];//触发阈值
+  13          //  unsigned int TK_lowest[HAL_Touchkey_SUM];//最低有效阈值
+  14            unsigned char Zero_UP_cnt[HAL_Touchkey_SUM];//先延时再执行零点上移
+  15            unsigned char Zero_Down_cnt[HAL_Touchkey_SUM];//先延时再零点下移计数器
+  16            unsigned char TK_counter[HAL_Touchkey_SUM];//延时消抖
+  17            unsigned char touchkey_state[HAL_Touchkey_SUM];//按键状态，1代表按键按下
+  18          }HAL_TouchKey_Typedef;
+  19          
+  20          HAL_TouchKey_Typedef xdata TouchKey_Task;
+  21          void HAL_TouchKey_Init()
+  22          {
+  23   1        unsigned char xdata i;
+  24   1        TSCHEN1=0xFF;//使能16个触摸按键通道
+  25   1        TSCHEN2=0xFF;
+  26   1        //0000 0111   0111 0011
+  27   1        TSCFG1  = (7<<4) + 3; //开关电容工作频率 = fosc/(2*(TSCFG1[6:4]+1)), 放电时间(系统时钟周期数) 0(125) 1(25
+             -0) 2(500) 3(1000) 4(2000) 5(2500) 6(5000) 7(7500) 最小3
+  28   1        TSCFG2  = 2;
+  29   1        
+  30   1        TSRT=0x00;//用于配置触摸按键和LED驱动器分时多工
+  31   1        TSCTRL =0xA3;//触摸按键重复扫描，重复扫描次数为4次
+  32   1        IE2 |=0x80;//开启触摸按键中断
+  33   1        EA=1;
+  34   1        for(i=0;i<HAL_Touchkey_SUM;i++)
+  35   1        {
+  36   2          TouchKey_Task.TK_differ[i]=DIFF[i];//零点与触摸值的差值
+  37   2      //    TouchKey_Task.TK_lowest[i]=DIFF[i]*3;//触摸按键最低阈值
+  38   2          TouchKey_Task.Zero_UP_cnt[i]=0;
+  39   2          TouchKey_Task.Zero_Down_cnt[i]=0;
+  40   2          TouchKey_Task.TK_counter[i]=0;
+  41   2          TouchKey_Task.touchkey_state[i]=0;
+  42   2        }
+  43   1        TouchKey_Task.zero_cnt=0;
+  44   1        TouchKey_Task.zero_Flag=0;
+  45   1        TouchKey_Task.ReadTouchkeyok=0;
+  46   1        TouchKey_Task.ScanFreq=HAL_Touchkey_cnt;//零点扫描次数
+  47   1      }
+  48          
+  49          void HAL_TouchKey_pro()
+  50          {
+  51   1        unsigned char xdata TKj;
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 2   
+
+  52   1        if(TouchKey_Task.ReadTouchkeyok)
+  53   1        {
+  54   2          TouchKey_Task.ReadTouchkeyok=0;
+  55   2          if(!TouchKey_Task.zero_Flag)
+  56   2          {
+  57   3            HAL_TouchKey_Set_Zero();
+  58   3            return;
+  59   3          }
+  60   2          else
+  61   2          {
+  62   3            for(TKj=0;TKj<HAL_Touchkey_SUM;TKj++)
+  63   3            {
+  64   4              if(TouchKey_Task.TK_cnt[TKj]>TouchKey_Task.TK_zero[TKj])//触摸按键未按下，零点上移
+  65   4              {
+  66   5                TouchKey_Task.Zero_Down_cnt[TKj]=0;
+  67   5                if(TouchKey_Task.Zero_UP_cnt[TKj]<20)//先延时，在执行零点跟随
+  68   5                {
+  69   6                  TouchKey_Task.Zero_UP_cnt[TKj]+=1;
+  70   6                }
+  71   5                else
+  72   5                  TouchKey_Task.TK_zero[TKj]++;
+  73   5                
+  74   5                if(TouchKey_Task.TK_counter[TKj]>0)
+  75   5                  TouchKey_Task.TK_counter[TKj]--;
+  76   5                else
+  77   5                  TouchKey_Task.touchkey_state[TKj]=0;
+  78   5      
+  79   5              }//从通道零开始依次比较至通道15
+  80   4              else if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj]-TouchKey_Task.TK_differ[TKj])//触摸按键已
+             -按下
+  81   4              {
+  82   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;//零点跟随计数清零
+  83   5                TouchKey_Task.Zero_Down_cnt[TKj]=0;
+  84   5                
+  85   5                TouchKey_Task.TK_counter[TKj]++;//触摸按键延时消抖
+  86   5                if(TouchKey_Task.TK_counter[TKj]>HAL_Touchkey_Timercnt)
+  87   5                TouchKey_Task.touchkey_state[TKj]=1;//表示通道TKJ已经按下
+  88   5              }
+  89   4              else
+  90   4              {
+  91   5                TouchKey_Task.Zero_UP_cnt[TKj]=0;
+  92   5                if(TouchKey_Task.Zero_Down_cnt[TKj]<100)//先延时，在执行零点跟随，零点下移
+  93   5                {
+  94   6                  TouchKey_Task.Zero_Down_cnt[TKj]++;
+  95   6                }
+  96   5                else
+  97   5                {
+  98   6                  if(TouchKey_Task.TK_cnt[TKj]<TouchKey_Task.TK_zero[TKj])
+  99   6                  {
+ 100   7                    TouchKey_Task.TK_zero[TKj]-=1;
+ 101   7                  }
+ 102   6                }
+ 103   5                
+ 104   5                if(TouchKey_Task.TK_counter[TKj]>0)
+ 105   5                  TouchKey_Task.TK_counter[TKj]--;
+ 106   5                else
+ 107   5                  TouchKey_Task.touchkey_state[TKj]=0;
+ 108   5              }
+ 109   4            }
+ 110   3          }
+ 111   2          
+ 112   2        }
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 3   
+
+ 113   1      }
+ 114          void HAL_TouchKey_Set_Zero()
+ 115          {
+ 116   1        unsigned char xdata TKi;
+ 117   1        if(!TouchKey_Task.zero_Flag)
+ 118   1        {
+ 119   2          //先扫描零点触摸值20次(TouchKey_Task.ScanFreq),在将值放入零点值缓冲区
+ 120   2          if(TouchKey_Task.zero_cnt>TouchKey_Task.ScanFreq)
+ 121   2          {
+ 122   3            TouchKey_Task.zero_Flag=1;
+ 123   3            for(TKi=0;TKi<HAL_Touchkey_SUM;TKi++)
+ 124   3            {
+ 125   4              TouchKey_Task.TK_zero[TKi]=TouchKey_Task.TK_cnt[TKi];
+ 126   4            }
+ 127   3          }
+ 128   2        }
+ 129   1      }
+ 130          unsigned char HAL_TouchKey_GetState(unsigned char TKnum)
+ 131          {
+ 132   1        if(TouchKey_Task.touchkey_state[TKnum])
+ 133   1        {
+ 134   2          return 1;
+ 135   2        }
+ 136   1        else
+ 137   1        {
+ 138   2          return 0;
+ 139   2        }
+ 140   1      }
+ 141          
+ 142          #ifdef HAL_TOUCHKEY_TEST_ENABLE
+ 143          
+ 144          #endif
+ 145          void HAL_TouchKey_Interrupt() interrupt 35
+ 146          {
+ 147   1        unsigned int xdata databuff;
+ 148   1        databuff=TSSTA2;
+ 149   1        if(databuff&0x40)
+ 150   1        {
+ 151   2          TSSTA2 |=0x40;
+ 152   2        }
+ 153   1        if(databuff&0x80)
+ 154   1        {
+ 155   2          TSSTA2 |=0x80;
+ 156   2          databuff &=0x0F;//TSSTA2前四位是已扫描完成通道值
+ 157   2          TouchKey_Task.TK_cnt[databuff]=TSDAT;
+ 158   2          if(databuff == HAL_Touchkey_SUM-1)
+ 159   2          {
+ 160   3            TouchKey_Task.zero_cnt++;
+ 161   3            TouchKey_Task.ReadTouchkeyok=1;
+ 162   3          }
+ 163   2        }
+ 164   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    921    ----
+   CONSTANT SIZE    =     32    ----
+   XDATA SIZE       =    164       5
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+C51 COMPILER V9.59.0.0   HAL_TOUCHKEY                                                      05/13/2026 22:47:35 PAGE 4   
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

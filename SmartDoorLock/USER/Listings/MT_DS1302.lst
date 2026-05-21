@@ -1,0 +1,122 @@
+C51 COMPILER V9.59.0.0   MT_DS1302                                                         05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MT_DS1302
+OBJECT MODULE PLACED IN .\Objects\MT_DS1302.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\MT\MT_DS1302.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\MT_DS1302.lst) TABS(2) OBJECT(.\Objects\MT_DS1302.o
+                    -bj)
+
+line level    source
+
+   1          #include "MT_DS1302.H"
+   2          #include "HAL_DS1302.H"
+   3          MT_TIME_Typedef xdata TIME_Task={0x59,0x59,0x23,0x28,0x03,0x26,6};
+   4          //写入时间
+   5          void MT_DS1302_SET_Time()
+   6          {
+   7   1        HAL_DS1302_W_DATA(HAL_Write_protect_W,0x00);//关闭写保护
+   8   1        HAL_DS1302_W_DATA(HAL_second_W,TIME_Task.second);
+   9   1        HAL_DS1302_W_DATA(HAL_minute_W,TIME_Task.minute);
+  10   1        HAL_DS1302_W_DATA(HAL_hour_W,TIME_Task.hour);
+  11   1        HAL_DS1302_W_DATA(HAL_day_W,TIME_Task.day);
+  12   1        HAL_DS1302_W_DATA(HAL_month_W,TIME_Task.month);
+  13   1        HAL_DS1302_W_DATA(HAL_year_W,TIME_Task.year);
+  14   1        HAL_DS1302_W_DATA(HAL_week_W,TIME_Task.week);
+  15   1        HAL_DS1302_W_DATA(HAL_charge_W,0xB5);//禁止充电
+  16   1        HAL_DS1302_W_DATA(HAL_Write_protect_W,0x80);//打开写保护
+  17   1      }
+  18          //读取时间
+  19          void MT_DS1302_Read_Time()
+  20          {
+  21   1        TIME_Task.second=HAL_DS1302_R_DATA(HAL_second_R);
+  22   1        TIME_Task.minute=HAL_DS1302_R_DATA(HAL_minute_R);
+  23   1        TIME_Task.hour=HAL_DS1302_R_DATA(HAL_hour_R);
+  24   1        TIME_Task.day=HAL_DS1302_R_DATA(HAL_day_R);
+  25   1        TIME_Task.month=HAL_DS1302_R_DATA(HAL_month_R);
+  26   1        TIME_Task.year=HAL_DS1302_R_DATA(HAL_year_R);
+  27   1        TIME_Task.week=HAL_DS1302_R_DATA(HAL_week_R);
+  28   1      }
+  29          void MT_DS1302_Init()
+  30          {
+  31   1        unsigned char dat;
+  32   1        unsigned char stat;
+  33   1        stat = 0;
+  34   1        MT_DS1302_Read_Time();
+  35   1        dat = ((TIME_Task.month & 0x0f) + (TIME_Task.month >> 4)*10); 
+  36   1          if((dat > 0) && (dat < 13))
+  37   1        { ///月份有效取值1-12   
+  38   2        }
+  39   1        else
+  40   1        {
+  41   2          stat = 1;
+  42   2        }
+  43   1        dat = ((TIME_Task.day & 0x0f) + (TIME_Task.day >> 4)*10);   
+  44   1          if((dat > 0) && (dat < 32))
+  45   1        { ///日1-31   此处还可以进一步优化； vvcbcv
+  46   2        }
+  47   1        else
+  48   1        {
+  49   2          stat = 1;
+  50   2        } 
+  51   1        dat = ((TIME_Task.hour & 0x0f) + (TIME_Task.hour >> 4)*10);     
+  52   1          if(dat < 24)
+  53   1        { ///小时 0-23
+C51 COMPILER V9.59.0.0   MT_DS1302                                                         05/13/2026 22:47:36 PAGE 2   
+
+  54   2        }
+  55   1        else
+  56   1        {
+  57   2          stat = 1;
+  58   2        } 
+  59   1        dat = ((TIME_Task.minute & 0x0f) + (TIME_Task.minute >> 4)*10);   
+  60   1          if(dat < 60)
+  61   1        { ///分钟 0-59
+  62   2        }
+  63   1        else
+  64   1        {
+  65   2          stat = 1;
+  66   2        }    
+  67   1        dat = ((TIME_Task.second & 0x0f) + (TIME_Task.second >> 4)*10); 
+  68   1        if(dat < 60)
+  69   1        { ///秒 0-59
+  70   2        }
+  71   1        else
+  72   1        {
+  73   2          stat = 1;
+  74   2        } 
+  75   1        if(stat)
+  76   1        {
+  77   2          TIME_Task.year = 0x23;
+  78   2          TIME_Task.month = 0x11;
+  79   2          TIME_Task.day = 0x23;
+  80   2          TIME_Task.hour = 0x23;
+  81   2          TIME_Task.minute = 0x59;
+  82   2          TIME_Task.second = 0x59;
+  83   2          TIME_Task.week = 4;
+  84   2          MT_DS1302_SET_Time(); 
+  85   2        } 
+  86   1      }
+  87          void MT_DS1302_BCDTOString(unsigned char dat,unsigned char *datBuff)
+  88          {
+  89   1        datBuff[0]=(((dat>>4)&0x0F)+0x30);
+  90   1        datBuff[1]=((dat&0x0F)+0x30);
+  91   1        datBuff[2]=0;
+  92   1      //  datBuff[0] = (((dat >> 4) & 0x0f) + 0x30);
+  93   1      //  datBuff[1] = ((dat & 0x0f) + 0x30);
+  94   1      //  datBuff[2] = 0;
+  95   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    415    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       1
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

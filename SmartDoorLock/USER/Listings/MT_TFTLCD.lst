@@ -1,0 +1,319 @@
+C51 COMPILER V9.59.0.0   MT_TFTLCD                                                         05/13/2026 22:47:36 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MT_TFTLCD
+OBJECT MODULE PLACED IN .\Objects\MT_TFTLCD.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\MT\MT_TFTLCD.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\APP;..\
+                    -HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\MT_TFTLCD.lst) TABS(2) OBJECT(.\Objects\MT_TFTLCD.o
+                    -bj)
+
+line level    source
+
+   1          #include "MT_TFTLCD.H"
+   2          #include "HAL_TFTLCD_SPI.H"
+   3          #include "MT_TFTLCDPONT.H"
+   4          //设置屏幕范围
+   5          void MT_TFTLCD_ADDRESS_SET(unsigned int xsta,unsigned int ysta,unsigned int xend,unsigned int yend)
+   6          {
+   7   1        #if (USE_HORIZONTAL==0)
+                {
+                  HAL_TFTLCD_WRREG(0x2a);//列地址设置
+                  HAL_TFTLCD_WRData16(xsta+2); //x起始地址
+                  HAL_TFTLCD_WRData16(xend+2); //x结束地址
+                  
+                  HAL_TFTLCD_WRREG(0x2b);//行地址设置
+                  HAL_TFTLCD_WRData16(ysta+1); //y起始地址
+                  HAL_TFTLCD_WRData16(yend+1);  //y结束地址 
+                  
+                  HAL_TFTLCD_WRREG(0x2c);//储存器写
+                }
+                #elif (USE_HORIZONTAL==1)
+                {
+                  HAL_TFTLCD_WRREG(0x2a);//列地址设置
+                  HAL_TFTLCD_WRData16(xsta+2);
+                  HAL_TFTLCD_WRData16(xend+2);
+                  HAL_TFTLCD_WRREG(0x2b);//行地址设置
+                  HAL_TFTLCD_WRData16(ysta+1);
+                  HAL_TFTLCD_WRData16(yend+1);
+                  HAL_TFTLCD_WRREG(0x2c);//储存器写
+                }
+                #elif (USE_HORIZONTAL==2)
+  30   1        {
+  31   2          HAL_TFTLCD_WRREG(0x2a);//列地址设置
+  32   2          HAL_TFTLCD_WRData16(xsta+1);
+  33   2          HAL_TFTLCD_WRData16(xend+1);
+  34   2          HAL_TFTLCD_WRREG(0x2b);//行地址设置
+  35   2          HAL_TFTLCD_WRData16(ysta+2);
+  36   2          HAL_TFTLCD_WRData16(yend+2);
+  37   2          HAL_TFTLCD_WRREG(0x2c);//储存器写
+  38   2        }
+  39   1        #else
+                {
+                  HAL_TFTLCD_WRREG(0x2a);//列地址设置
+                  HAL_TFTLCD_WRData16(xsta+1);
+                  HAL_TFTLCD_WRData16(xend+1);
+                  HAL_TFTLCD_WRREG(0x2b);//行地址设置
+                  HAL_TFTLCD_WRData16(ysta+2);
+                  HAL_TFTLCD_WRData16(yend+2);
+                  HAL_TFTLCD_WRREG(0x2c);//储存器写
+                }
+                #endif
+  50   1      }
+  51          //给指定范围填充背景颜色
+  52          //xsta X轴起始坐标，ysta Y轴起始坐标，xend X轴结束坐标，yend Y轴结束坐标
+  53          void MT_TFTLCD_BColorfill(unsigned int xsta,unsigned int ysta,unsigned int xend,unsigned int yend,unsigned
+C51 COMPILER V9.59.0.0   MT_TFTLCD                                                         05/13/2026 22:47:36 PAGE 2   
+
+             - int color)
+  54           {
+  55   1        unsigned char xdata i,j;
+  56   1        MT_TFTLCD_ADDRESS_SET(xsta,ysta,xend-1,yend-1);//屏幕显示范围
+  57   1        for(i=ysta;i<yend;i++)
+  58   1        {
+  59   2          for(j=xsta;j<xend;j++)
+  60   2          {
+  61   3            HAL_TFTLCD_WRData16(color);
+  62   3          }
+  63   2        }
+  64   1      }
+  65          //画线
+  66          void MT_TFTLCD_DrawLine(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y2,unsigned int color
+             -)
+  67          {
+  68   1        unsigned int xdata t; 
+  69   1        int xerr=0,yerr=0,delta_x,delta_y,distance;
+  70   1        int incx,incy,uRow,uCol;
+  71   1        delta_x=x2-x1; //计算坐标增量 
+  72   1        delta_y=y2-y1;
+  73   1        uRow=x1;//画线起点坐标
+  74   1        uCol=y1;
+  75   1        if(delta_x>0)
+  76   1          incx=1; //设置单步方向 
+  77   1        else if (delta_x==0)
+  78   1          incx=0;//垂直线 
+  79   1        else 
+  80   1        {
+  81   2          incx=-1;
+  82   2          delta_x=-delta_x;
+  83   2        }
+  84   1      
+  85   1        if(delta_y>0)
+  86   1          incy=1;
+  87   1        else if (delta_y==0)
+  88   1          incy=0;//水平线 
+  89   1        else 
+  90   1        {
+  91   2          incy=-1;
+  92   2          delta_y=-delta_y;
+  93   2        }
+  94   1      
+  95   1        if(delta_x>delta_y)
+  96   1          distance=delta_x; //选取基本增量坐标轴 
+  97   1        else 
+  98   1          distance=delta_y;
+  99   1        for(t=0;t<distance+1;t++)
+ 100   1        {
+ 101   2          MT_TFTLCD_PointColor(uRow,uCol,color);//画点
+ 102   2          xerr+=delta_x;
+ 103   2          yerr+=delta_y;
+ 104   2          if(xerr>distance)
+ 105   2          {
+ 106   3            xerr-=distance;
+ 107   3            uRow+=incx;
+ 108   3          }
+ 109   2          if(yerr>distance)
+ 110   2          {
+ 111   3            yerr-=distance;
+ 112   3            uCol+=incy;
+ 113   3          }
+C51 COMPILER V9.59.0.0   MT_TFTLCD                                                         05/13/2026 22:47:36 PAGE 3   
+
+ 114   2        }
+ 115   1      }
+ 116          //添加指定颜色的光标
+ 117          void MT_TFTLCD_PointColor(unsigned char x,unsigned char y,unsigned int color)
+ 118          {
+ 119   1        MT_TFTLCD_ADDRESS_SET(x,y,x,y);
+ 120   1        HAL_TFTLCD_WRData16(color);
+ 121   1      }
+ 122          
+ 123          //显示一个字符
+ 124          /*
+ 125          显示X轴起始值：xsta
+ 126          显示Y轴起始值：ysta
+ 127          字符串首地址：p
+ 128          字体颜色：fcolor
+ 129          背景颜色：bcolor
+ 130          字体尺寸：fsizey
+ 131          模式：mode 0非叠加模式 1叠加模式
+ 132          */
+ 133          void MT_TFTLCD_ShowChar(unsigned char xsta,unsigned char ysta,unsigned short num,unsigned short fcolor,uns
+             -igned short bcolor,unsigned char fsizey,unsigned char mode)
+ 134          {
+ 135   1        unsigned char xdata i,m,x0,t;
+ 136   1        unsigned short xdata temp,numx;
+ 137   1        unsigned char xdata fsizex;//字符水平方向像素
+ 138   1        unsigned char xdata fontnumber;//一个字符占有的字节数
+ 139   1        num=num-' ';//传入字符的偏移量
+ 140   1        numx=num-'0';
+ 141   1        x0=xsta;
+ 142   1        fsizex=fsizey/2;
+ 143   1        fontnumber=(fsizex/8+((fsizex%8)?1:0))*fsizey;
+ 144   1        MT_TFTLCD_ADDRESS_SET(xsta,ysta,xsta+fsizex-1,ysta+fsizey-1);//设置一个字符的屏显范围
+ 145   1        for(i=0;i<fontnumber;i++)
+ 146   1        {
+ 147   2          if(fsizey==12)
+ 148   2            temp=ascii_1206[num][i];
+ 149   2          else if(fsizey==16)
+ 150   2            temp=ascii_1608[num][i];
+ 151   2          else if(fsizey==24)
+ 152   2            temp=ascii_2412[num][i];
+ 153   2          else if(fsizey==32)
+ 154   2            temp=ascii_3216[num][i];
+ 155   2          else if(fsizey==48)
+ 156   2            temp=ascii_4824[numx][i];
+ 157   2          else
+ 158   2            return;
+ 159   2          for(m=0;m<8;m++)
+ 160   2          {
+ 161   3            if(!mode)//非叠加模式，具有自动刷新的功能
+ 162   3            {
+ 163   4              if(temp & (0x01<<m) )
+ 164   4              HAL_TFTLCD_WRData16(fcolor);//字体颜色
+ 165   4              else
+ 166   4              HAL_TFTLCD_WRData16(bcolor);//背景颜色
+ 167   4              t++;
+ 168   4              if(t%fsizex==0)//一个字符的水平像素为fsizex
+ 169   4              {
+ 170   5                t=0;
+ 171   5                break;
+ 172   5              }
+ 173   4            }
+ 174   3            else//叠加模式，没有自动刷新的功能
+C51 COMPILER V9.59.0.0   MT_TFTLCD                                                         05/13/2026 22:47:36 PAGE 4   
+
+ 175   3            {
+ 176   4              if(temp & (0x01<<m) )
+ 177   4              MT_TFTLCD_PointColor(xsta,ysta,fcolor);
+ 178   4              xsta++;
+ 179   4              if((xsta-x0)==fsizex)
+ 180   4              {
+ 181   5                xsta=x0;
+ 182   5                ysta++;
+ 183   5                break;
+ 184   5              }
+ 185   4            }
+ 186   3          }
+ 187   2        }
+ 188   1      }
+ 189          /*
+ 190          显示字符串(屏幕为横屏时)
+ 191          */
+ 192          
+ 193          void MT_TFTLCD_Showstring(unsigned char xsta,unsigned char ysta,const unsigned char *p,unsigned short fcol
+             -or,unsigned short bcolor,unsigned char fsizey,unsigned char mode)
+ 194          {
+ 195   1      //  unsigned short xdata number;
+ 196   1        while(*p != '\0')
+ 197   1        {
+ 198   2          MT_TFTLCD_ShowChar(xsta,ysta,*p,fcolor,bcolor,fsizey,mode);
+ 199   2          p++;
+ 200   2          xsta+=fsizey/2;
+ 201   2      //    number+=fsizey/2;
+ 202   2      //    switch(fsizey)
+ 203   2      //    {
+ 204   2      //      case 12:if(number>154)//一个12号字的水平像素为6
+ 205   2      //              {
+ 206   2      //                number=0;
+ 207   2      //                xsta=0;
+ 208   2      //                ysta+=fsizey;
+ 209   2      //              }
+ 210   2      //              break;
+ 211   2      //      case 16:if(number>152)//一个16号字的水平像素为8
+ 212   2      //              {
+ 213   2      //                number=0;
+ 214   2      //                xsta=0;
+ 215   2      //                ysta+=fsizey;
+ 216   2      //              }
+ 217   2      //              break;
+ 218   2      //      case 24:if(number>148)//一个24号字的水平像素为12
+ 219   2      //              {
+ 220   2      //                number=0;
+ 221   2      //                xsta=0;
+ 222   2      //                ysta+=fsizey;
+ 223   2      //              }
+ 224   2      //              break;
+ 225   2      //      case 32:if(number>144)//一个32号字的水平像素为16
+ 226   2      //              {
+ 227   2      //                number=0;
+ 228   2      //                xsta=0;
+ 229   2      //                ysta+=fsizey;
+ 230   2      //              }
+ 231   2      //              break;
+ 232   2      //      default :break;
+ 233   2      //      
+ 234   2      //    } 
+ 235   2        }
+C51 COMPILER V9.59.0.0   MT_TFTLCD                                                         05/13/2026 22:47:36 PAGE 5   
+
+ 236   1      }
+ 237          
+ 238          /*显示图片,图片像素为24*30*/
+ 239          void MT_TFTLCD_ShowPicture(unsigned short xsta,unsigned short ysta,unsigned short xlen,unsigned short ylen
+             -, const unsigned char *p,unsigned short fcolor,unsigned short bcolor)
+ 240          {
+ 241   1        unsigned char xdata i,j,t,x0;
+ 242   1        unsigned short xdata temp;
+ 243   1        x0=xlen/8;
+ 244   1        MT_TFTLCD_ADDRESS_SET(xsta,ysta,xsta+xlen-1,ysta+ylen-1);
+ 245   1        for(i=0;i<x0;i++)
+ 246   1        {
+ 247   2          for(j=0;j<ylen;j++)
+ 248   2          {
+ 249   3            temp=*p;
+ 250   3            for(t=0;t<8;t++)
+ 251   3            {
+ 252   4              if(temp&0x80)
+ 253   4              {
+ 254   5                HAL_TFTLCD_WRData16(fcolor);
+ 255   5              }
+ 256   4              else
+ 257   4              {
+ 258   5                HAL_TFTLCD_WRData16(bcolor);
+ 259   5              }
+ 260   4              temp<<=1;
+ 261   4            }
+ 262   3            p++;
+ 263   3          }
+ 264   2        }
+ 265   1      }
+ 266          //显示开门，关门图片
+ 267          void MT_TFTLCD_DoorPic(unsigned char i)
+ 268          {
+ 269   1        switch(i)
+ 270   1        {
+ 271   2          case 0:
+ 272   2            MT_TFTLCD_ShowPicture(5,0,24,30,pic_doorState[0],WHITE,BLACK);
+ 273   2            break;
+ 274   2          case 1:
+ 275   2            MT_TFTLCD_ShowPicture(5,0,24,30,pic_doorState[1],WHITE,BLACK);
+ 276   2            break;
+ 277   2          case 2:
+ 278   2            MT_TFTLCD_ShowPicture(5,0,24,30,pic_doorState[2],WHITE,BLACK);
+ 279   2            break;
+ 280   2        }
+ 281   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1448    ----
+   CONSTANT SIZE    =  15154    ----
+   XDATA SIZE       =   ----      20
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      85
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

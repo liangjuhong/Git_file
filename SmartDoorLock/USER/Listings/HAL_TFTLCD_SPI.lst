@@ -1,0 +1,189 @@
+C51 COMPILER V9.59.0.0   HAL_TFTLCD_SPI                                                    05/13/2026 22:47:35 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE HAL_TFTLCD_SPI
+OBJECT MODULE PLACED IN .\Objects\HAL_TFTLCD_SPI.obj
+COMPILER INVOKED BY: D:\KEIL_Liang\keil_C51\C51\BIN\C51.EXE ..\HAL\HAL_TFTLCD_SPI.c OPTIMIZE(8,SPEED) BROWSE INCDIR(..\A
+                    -PP;..\HAL;..\MT;..\NOTE;..\OS;..\USER) DEBUG OBJECTEXTEND PRINT(.\Listings\HAL_TFTLCD_SPI.lst) TABS(2) OBJECT(.\Objects\
+                    -HAL_TFTLCD_SPI.obj)
+
+line level    source
+
+   1          #include <STC8H.H>
+   2          #include "HAL_TFTLCD_SPI.H"
+   3          void HAL_TFTLCD_SpiInit()//硬件SPI初始化
+   4          {
+   5   1        HAL_CS_SET;       //关闭片选信号 禁止对TFTLCD屏操作
+   6   1        P_SW1 &= 0xF3;
+   7   1        P_SW1 |= 0x08;
+   8   1        //使能SPI主机模式 SPCTL.SSIG为零则由SS引脚来确认器件是主机还是从机，STC8H的SPI的SS引脚默认为1
+   9   1        SPCTL = 0xD0;     //1101 0000   CPOL\CPHA都为零
+  10   1        SPSTAT = 0xc0;    //清中断标志
+  11   1        HAL_SCL_CLR;      //时钟线空闲状态低电平
+  12   1        HAL_DC_SET;       //默认写数据
+  13   1      }
+  14          void HAL_TFTLCD_BL_Control(HAL_TFTLCD_Typedef LCDState)
+  15          {
+  16   1        if(LCDState==HAL_TFTLCD_ENABLE)
+  17   1        {
+  18   2          HAL_LEDK_SET;
+  19   2        }
+  20   1        else
+  21   1        {
+  22   2          HAL_LEDK_CLR;
+  23   2        }
+  24   1      }
+  25          void HAL_TFTLCD_Init()
+  26          {
+  27   1        HAL_RES_CLR; //复位脚拉低 TFTLCD 复位
+  28   1      //  HAL_delay_ms(100); //复位延时
+  29   1        HAL_RES_SET; //复位脚拉高 TFTLCD正常工作
+  30   1        
+  31   1      //  HAL_delay_ms(100); //复位后延时 
+  32   1        HAL_TFTLCD_BL_Control(HAL_TFTLCD_DISABLE);//关闭背光
+  33   1      //  HAL_delay_ms(100); //打开背光位后延时 
+  34   1        
+  35   1        //************* Start Initial Sequence **********//
+  36   1        HAL_TFTLCD_WRREG(0x11);    //TFTLCD退出休眠 Sleep out 
+  37   1      //  HAL_delay_ms(120);              //Delay 120ms 
+  38   1        //------------------------------------ST7735S Frame Rate-----------------------------------------// 
+  39   1        HAL_TFTLCD_WRREG(0xB1); 
+  40   1        HAL_TFTLCD_WRData8(0x05); 
+  41   1        HAL_TFTLCD_WRData8(0x3C); 
+  42   1        HAL_TFTLCD_WRData8(0x3C); 
+  43   1        HAL_TFTLCD_WRREG(0xB2); 
+  44   1        HAL_TFTLCD_WRData8(0x05);
+  45   1        HAL_TFTLCD_WRData8(0x3C); 
+  46   1        HAL_TFTLCD_WRData8(0x3C); 
+  47   1        HAL_TFTLCD_WRREG(0xB3); 
+  48   1        HAL_TFTLCD_WRData8(0x05); 
+  49   1        HAL_TFTLCD_WRData8(0x3C); 
+  50   1        HAL_TFTLCD_WRData8(0x3C); 
+  51   1        HAL_TFTLCD_WRData8(0x05); 
+  52   1        HAL_TFTLCD_WRData8(0x3C); 
+  53   1        HAL_TFTLCD_WRData8(0x3C); 
+C51 COMPILER V9.59.0.0   HAL_TFTLCD_SPI                                                    05/13/2026 22:47:35 PAGE 2   
+
+  54   1        //------------------------------------End ST7735S Frame Rate---------------------------------// 
+  55   1        HAL_TFTLCD_WRREG(0xB4);  //Dot inversion 
+  56   1        HAL_TFTLCD_WRData8(0x03); 
+  57   1        //------------------------------------ST7735S Power Sequence---------------------------------// 
+  58   1        HAL_TFTLCD_WRREG(0xC0); 
+  59   1        HAL_TFTLCD_WRData8(0x28); 
+  60   1        HAL_TFTLCD_WRData8(0x08); 
+  61   1        HAL_TFTLCD_WRData8(0x04); 
+  62   1        HAL_TFTLCD_WRREG(0xC1); 
+  63   1        HAL_TFTLCD_WRData8(0XC0); 
+  64   1        HAL_TFTLCD_WRREG(0xC2); 
+  65   1        HAL_TFTLCD_WRData8(0x0D); 
+  66   1        HAL_TFTLCD_WRData8(0x00); 
+  67   1        HAL_TFTLCD_WRREG(0xC3); 
+  68   1        HAL_TFTLCD_WRData8(0x8D); 
+  69   1        HAL_TFTLCD_WRData8(0x2A); 
+  70   1        HAL_TFTLCD_WRREG(0xC4); 
+  71   1        HAL_TFTLCD_WRData8(0x8D); 
+  72   1        HAL_TFTLCD_WRData8(0xEE); 
+  73   1        //---------------------------------End ST7735S Power Sequence-------------------------------------// 
+  74   1        HAL_TFTLCD_WRREG(0xC5); //VCOM 
+  75   1        HAL_TFTLCD_WRData8(0x1A); 
+  76   1      
+  77   1        HAL_TFTLCD_WRREG(0x36); //MX, MY, RGB mode 
+  78   1        #if(USE_HORIZONTAL==0)
+                    HAL_TFTLCD_WRData8(0x00); //0b0000 0000
+                #elif(USE_HORIZONTAL==1)
+                    HAL_TFTLCD_WRData8(0xC0);//0b1100 0000
+                #elif(USE_HORIZONTAL==2)
+  83   1            HAL_TFTLCD_WRData8(0x70);//0b0111 0000
+  84   1        #else 
+                    HAL_TFTLCD_WRData8(0xA0); //0b1010 0000
+                #endif
+  87   1        //------------------------------------ST7735S Gamma Sequence---------------------------------// 
+  88   1        HAL_TFTLCD_WRREG(0xE0); 
+  89   1        HAL_TFTLCD_WRData8(0x04); 
+  90   1        HAL_TFTLCD_WRData8(0x22); 
+  91   1        HAL_TFTLCD_WRData8(0x07); 
+  92   1        HAL_TFTLCD_WRData8(0x0A); 
+  93   1        HAL_TFTLCD_WRData8(0x2E); 
+  94   1        HAL_TFTLCD_WRData8(0x30); 
+  95   1        HAL_TFTLCD_WRData8(0x25); 
+  96   1        HAL_TFTLCD_WRData8(0x2A); 
+  97   1        HAL_TFTLCD_WRData8(0x28); 
+  98   1        HAL_TFTLCD_WRData8(0x26); 
+  99   1        HAL_TFTLCD_WRData8(0x2E); 
+ 100   1        HAL_TFTLCD_WRData8(0x3A); 
+ 101   1        HAL_TFTLCD_WRData8(0x00); 
+ 102   1        HAL_TFTLCD_WRData8(0x01); 
+ 103   1        HAL_TFTLCD_WRData8(0x03); 
+ 104   1        HAL_TFTLCD_WRData8(0x13); 
+ 105   1        HAL_TFTLCD_WRREG(0xE1); 
+ 106   1        HAL_TFTLCD_WRData8(0x04); 
+ 107   1        HAL_TFTLCD_WRData8(0x16); 
+ 108   1        HAL_TFTLCD_WRData8(0x06); 
+ 109   1        HAL_TFTLCD_WRData8(0x0D); 
+ 110   1        HAL_TFTLCD_WRData8(0x2D); 
+ 111   1        HAL_TFTLCD_WRData8(0x26); 
+ 112   1        HAL_TFTLCD_WRData8(0x23); 
+ 113   1        HAL_TFTLCD_WRData8(0x27); 
+ 114   1        HAL_TFTLCD_WRData8(0x27); 
+ 115   1        HAL_TFTLCD_WRData8(0x25); 
+C51 COMPILER V9.59.0.0   HAL_TFTLCD_SPI                                                    05/13/2026 22:47:35 PAGE 3   
+
+ 116   1        HAL_TFTLCD_WRData8(0x2D); 
+ 117   1        HAL_TFTLCD_WRData8(0x3B); 
+ 118   1        HAL_TFTLCD_WRData8(0x00); 
+ 119   1        HAL_TFTLCD_WRData8(0x01); 
+ 120   1        HAL_TFTLCD_WRData8(0x04); 
+ 121   1        HAL_TFTLCD_WRData8(0x13); 
+ 122   1        //------------------------------------End ST7735S Gamma Sequence-----------------------------// 
+ 123   1        HAL_TFTLCD_WRREG(0x3A); //65k mode 
+ 124   1        HAL_TFTLCD_WRData8(0x05); //每个点16 bits 2个字节
+ 125   1        HAL_TFTLCD_WRREG(0x29); //Display on 打开TFTLCD屏幕的显示功能
+ 126   1      }
+ 127          void HAL_TFTLCD_WRData8(unsigned char dat)//写入8位数据
+ 128          {
+ 129   1      //  unsigned char xdata i;
+ 130   1        HAL_CS_CLR;//打开片选信号，开始操作LCD屏幕
+ 131   1        SPDAT=dat;
+ 132   1        while(!(SPSTAT & 0x80));
+ 133   1        SPSTAT = 0xc0;    //清中断标志1100
+ 134   1      //  for(i=0;i<8;i++)
+ 135   1      //  {
+ 136   1      //    HAL_SCL_CLR;
+ 137   1      //    if(dat&0x80)
+ 138   1      //    {
+ 139   1      //      HAL_SDA_SET;
+ 140   1      //    }
+ 141   1      //    else
+ 142   1      //    {
+ 143   1      //      HAL_SDA_CLR;
+ 144   1      //    }
+ 145   1      //    HAL_SCL_SET;
+ 146   1      //    dat<<=1;
+ 147   1      //  }
+ 148   1        HAL_CS_SET;
+ 149   1      }
+ 150          void HAL_TFTLCD_WRData16(unsigned int dat)//写入16位数据
+ 151          {
+ 152   1        HAL_TFTLCD_WRData8(dat>>8);
+ 153   1        HAL_TFTLCD_WRData8(dat);
+ 154   1      }
+ 155          void HAL_TFTLCD_WRREG(unsigned char dat)
+ 156          {
+ 157   1        HAL_DC_CLR;
+ 158   1        HAL_TFTLCD_WRData8(dat);
+ 159   1        HAL_DC_SET;
+ 160   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    446    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
